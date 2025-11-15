@@ -45,6 +45,7 @@ interface CartContextValue {
   updateQuantity: (productId: string, delta: number) => void;
   handleCheckout: () => void;
   proceedToPayment: () => Promise<void>;
+  handleManualPaymentSubmit: (bkashNumber: string, trxId: string) => Promise<void>;
   syncCartToBackend: () => Promise<void>;
   loadCartFromBackend: () => Promise<void>;
   mergeGuestCartWithUserCart: (guestCart: CartItem[]) => Promise<void>;
@@ -367,6 +368,49 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   /**
+   * Handles manual bKash payment submission
+   */
+  const handleManualPaymentSubmit = async (bkashNumber: string, trxId: string) => {
+    if (!bkashNumber.trim() || !trxId.trim()) {
+      addNotification('bKash number and Transaction ID are required.', 'warning');
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setShowAddressModal(false);
+
+    try {
+      const response = await fetch('/api/orders/create-manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: cartTotal,
+          cartItems: cart,
+          customerEmail: user?.email || '',
+          customerName: user?.name || 'Guest',
+          userId: user?.id || null,
+          ...addressData,
+          bkashNumber,
+          trxId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Redirect to a success page with manual flag
+        window.location.href = `/checkout/success?manual=true&order_id=${data.orderId}&trx_id=${trxId}`;
+      } else {
+        addNotification(data.error || 'Failed to place manual order.', 'error');
+      }
+    } catch (err) {
+      addNotification('Network error. Failed to place order.', 'error');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  /**
    * Merges guest cart with user cart after login
    * @param guestCart - Cart items from guest session
    */
@@ -484,6 +528,7 @@ export function CartProvider({ children }: CartProviderProps) {
     updateQuantity,
     handleCheckout,
     proceedToPayment,
+    handleManualPaymentSubmit,
     syncCartToBackend,
     loadCartFromBackend,
     mergeGuestCartWithUserCart,

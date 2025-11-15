@@ -5,11 +5,11 @@ import { CheckCircle, ShoppingBag, Receipt } from 'lucide-react';
 
 export default function CheckoutSuccess() {
   const router = useRouter();
-  const { session_id, payment_id, trx_id } = router.query;
+  const { session_id, payment_id, trx_id, manual, order_id } = router.query;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (session_id || payment_id) {
+    if (session_id || payment_id || manual) {
       // Clear localStorage cart
       localStorage.removeItem('shopping_cart');
       localStorage.removeItem('checkout_cart');
@@ -21,7 +21,7 @@ export default function CheckoutSuccess() {
         setLoading(false);
       }, 1500);
     }
-  }, [session_id, payment_id]);
+  }, [session_id, payment_id, manual]);
 
   if (loading) {
     return (
@@ -51,14 +51,40 @@ export default function CheckoutSuccess() {
               <CheckCircle className="w-12 h-12 text-green-500" />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">Payment Successful!</h1>
-            <p className="text-pink-100">Your order has been confirmed</p>
+            <p className="text-pink-100">
+              {manual
+                ? 'Your order is pending verification'
+                : 'Your order has been confirmed'}
+            </p>
           </div>
 
           {/* Content */}
           <div className="p-8">
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-lg p-4 mb-6">
-              <p className="text-green-800 font-medium mb-1">✓ Payment completed successfully</p>
-              <p className="text-green-700 text-sm">Thank you for shopping with us!</p>
+            <div
+              className={`border-l-4 rounded-lg p-4 mb-6 ${
+                manual
+                  ? 'bg-yellow-50 border-yellow-500'
+                  : 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-500'
+              }`}
+            >
+              <p
+                className={`font-medium mb-1 ${
+                  manual ? 'text-yellow-800' : 'text-green-800'
+                }`}
+              >
+                {manual
+                  ? '⏳ Order Received, Awaiting Verification'
+                  : '✓ Payment completed successfully'}
+              </p>
+              <p
+                className={`text-sm ${
+                  manual ? 'text-yellow-700' : 'text-green-700'
+                }`}
+              >
+                {manual
+                  ? 'Thank you! We will verify your manual payment and process your order shortly.'
+                  : 'Thank you for shopping with us!'}
+              </p>
             </div>
 
             {/* Transaction Details */}
@@ -107,7 +133,7 @@ export default function CheckoutSuccess() {
               </Link>
               
               <Link
-                href="/"
+                href={order_id ? `/my-orders?order_id=${order_id}` : "/my-orders"}
                 className="flex items-center justify-center gap-2 w-full border-2 border-gray-300 text-gray-700 py-3.5 rounded-xl hover:bg-gray-50 hover:border-gray-400 font-semibold transition-all"
               >
                 <Receipt className="w-5 h-5" />

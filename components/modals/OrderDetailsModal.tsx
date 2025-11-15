@@ -43,6 +43,47 @@ export const OrderDetailsModal: React.FC = () => {
           </div>
         </div>
 
+        {/* Manual Payment Info */}
+        {order.paymentMethod === 'MANUAL_BKASH' && (
+          <div
+            className={`bg-yellow-900 border border-yellow-700 rounded-lg p-4 mb-4`}
+          >
+            <h4 className={`font-semibold text-yellow-300 mb-2`}>
+              Manual Payment Verification
+            </h4>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className={`text-gray-400`}>Payment Method:</span>
+                <span className={`ml-2 text-white`}>MANUAL_BKASH</span>
+              </div>
+              <div>
+                <span className={`text-gray-400`}>Status:</span>
+                <span className={`ml-2 text-white`}>{order.status}</span>
+              </div>
+              <div>
+                <span className={`text-gray-400`}>Amount:</span>
+                <span className={`ml-2 text-white`}>
+                  ৳{Number(order.total).toFixed(2)}
+                </span>
+              </div>
+              <div>
+                <span className={`text-gray-400`}>User bKash #:</span>
+                <span className={`ml-2 text-white`}>
+                  {order.paymentPhoneNumber}
+                </span>
+              </div>
+              <div className="col-span-2">
+                <span className={`text-gray-400`}>User TrxID:</span>
+                <span className={`ml-2 text-white`}>{order.paymentTrxId}</span>
+              </div>
+            </div>
+            <p className="text-yellow-400 text-xs mt-3">
+              Admin must manually verify this payment in the bKash account
+              (01752983864) before changing status to 'Processing'.
+            </p>
+          </div>
+        )}
+
         {/* Delivery Address */}
         {(order.phone || order.address) && (
           <div className={`${darkMode ? 'bg-blue-900 border border-blue-700' : 'bg-blue-50'} rounded-lg p-4 mb-4`}>

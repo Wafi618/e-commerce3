@@ -72,6 +72,9 @@ model Order {
   notes      String?     // additional delivery notes
   total      Decimal     @db.Decimal(10, 2) // Using Decimal for precise money calculations
   status     OrderStatus @default(PENDING)
+  paymentMethod String? // To track 'MANUAL_BKASH' vs 'AUTO_BKASH'
+  paymentPhoneNumber String? // User's bKash number for manual payment
+  paymentTrxId String? // User's provided TrxID for manual payment
   orderItems OrderItem[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
