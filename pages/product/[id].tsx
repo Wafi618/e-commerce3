@@ -1,0 +1,379 @@
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { ArrowLeft, ShoppingCart, Package, AlertCircle } from 'lucide-react';
+import { Layout } from '@/components/Layout';
+import { getImageUrl } from '@/utils/imageUtils';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { ParticlesBackground } from '@/components/ParticlesBackground';
+import { useCart, useTheme } from '@/contexts';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import WhatsAppButton from '@/components/ui/WhatsAppButton';
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  images: string[];
+  stock: number;
+  category: string;
+  subcategory?: string;
+  description?: string;
+}
+
+interface ProductDetailData {
+  product: Product;
+  similarProducts: Product[];
+}
+
+export default function ProductDetailPage() {
+  const router = useRouter();
+  const { id } = router.query;
+  const { addToCart } = useCart();
+  const { darkMode } = useTheme();
+
+  const [data, setData] = useState<ProductDetailData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedImage, setSelectedImage] = useState('');
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchProductDetails = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/products/${id}`);
+        const result = await response.json();
+
+        if (result.success) {
+          setData(result.data);
+          // Set initial selected image to the main image
+          setSelectedImage(result.data.product.image);
+        } else {
+          setError(result.error || 'Failed to load product');
+        }
+      } catch (err) {
+        console.error('Failed to fetch product:', err);
+        setError('Failed to load product details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductDetails();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <LoadingSpinner darkMode={darkMode} message="Loading product..." />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className={`${darkMode ? 'bg-red-900/50 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'} border px-6 py-4 rounded-lg flex items-center gap-3`}>
+            <AlertCircle className="w-5 h-5" />
+            <span>{error || 'Product not found'}</span>
+          </div>
+          <Link
+            href="/"
+            className={`mt-4 inline-flex items-center gap-2 ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Shop
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
+
+  const { product, similarProducts } = data;
+  const allImages = [product.image, ...(product.images || [])].filter(Boolean);
+
+  const handleAddToCart = () => {
+    for (let i = 0; i < quantity; i++) {
+      addToCart(product);
+    }
+  };
+
+  return (
+    <Layout>
+      <div className="relative">
+        <ParticlesBackground darkMode={darkMode} />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back Button */}
+        <Link
+          href="/"
+          className={`inline-flex items-center gap-2 mb-6 ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Shop
+        </Link>
+
+        {/* Product Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {/* Image Gallery */}
+          <div>
+            {/* Main Image */}
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-lg overflow-hidden mb-4`}>
+              <img
+                src={getImageUrl(selectedImage) || 'https://via.placeholder.com/600x600?text=No+Image'}
+                alt={product.name}
+                className="w-full h-96 object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://via.placeholder.com/600x600?text=No+Image';
+                }}
+              />
+            </div>
+
+            {/* Thumbnail Gallery */}
+            {allImages.length > 1 && (
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {allImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedImage(img)}
+                    className={`${darkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-lg overflow-hidden border-2 ${
+                      selectedImage === img
+                        ? 'border-blue-600'
+                        : darkMode
+                        ? 'border-gray-700 hover:border-gray-600'
+                        : 'border-gray-200 hover:border-gray-300'
+                    } transition-colors`}
+                  >
+                    <img
+                      src={getImageUrl(img) || 'https://via.placeholder.com/150?text=No+Image'}
+                      alt={`${product.name} ${idx + 1}`}
+                      className="w-full h-20 object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/150?text=No+Image';
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Product Info */}
+          <div>
+            <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+              {product.name}
+            </h1>
+
+            {/* Category & Subcategory */}
+            <div className="flex gap-2 mb-4">
+              <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
+                {product.category}
+              </span>
+              {product.subcategory && (
+                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'}`}>
+                  {product.subcategory}
+                </span>
+              )}
+            </div>
+
+            {/* Price */}
+            <div className="mb-6">
+              <span className={`text-4xl font-bold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                ৳{Number(product.price).toFixed(2)}
+              </span>
+            </div>
+
+            {/* Stock Status */}
+            <div className="mb-6">
+              {product.stock > 0 ? (
+                <div className="flex items-center gap-2">
+                  <Package className={`w-5 h-5 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
+                  <span className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                    {product.stock} in stock
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <AlertCircle className={`w-5 h-5 ${darkMode ? 'text-red-400' : 'text-red-600'}`} />
+                  <span className={`text-sm ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    Out of stock
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="mb-6">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                Quantity
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                  className={`px-4 py-2 rounded-lg ${
+                    darkMode
+                      ? 'bg-gray-700 text-white hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400'
+                  } transition-colors`}
+                >
+                  -
+                </button>
+                <span className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} min-w-[3rem] text-center`}>
+                  {quantity}
+                </span>
+                <button
+                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                  disabled={quantity >= product.stock}
+                  className={`px-4 py-2 rounded-lg ${
+                    darkMode
+                      ? 'bg-gray-700 text-white hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400'
+                  } transition-colors`}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Add to Cart Button */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleAddToCart}
+                disabled={product.stock <= 0}
+                className={`w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${
+                  product.stock <= 0
+                    ? darkMode
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {product.stock <= 0 ? 'Out of Stock' : `Add ${quantity} to Cart`}
+              </button>
+              <WhatsAppButton product={product} darkMode={darkMode} />
+            </div>
+          </div>
+        </div>
+
+        {/* Description Section */}
+        {product.description && (
+          <>
+            <br />
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md p-6`}>
+              <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                Description
+              </h2>
+              <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    table: ({node, ...props}) => (
+                      <div className="overflow-x-auto my-4">
+                        <table className={`min-w-full divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'} border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`} {...props} />
+                      </div>
+                    ),
+                    thead: ({node, ...props}) => (
+                      <thead className={darkMode ? 'bg-gray-800' : 'bg-gray-50'} {...props} />
+                    ),
+                    th: ({node, ...props}) => (
+                      <th className={`px-4 py-2 text-left text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-900'}`} {...props} />
+                    ),
+                    td: ({node, ...props}) => (
+                      <td className={`px-4 py-2 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`} {...props} />
+                    ),
+                    h1: ({node, ...props}) => (
+                      <h1 className={`text-2xl font-bold mt-6 mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`} {...props} />
+                    ),
+                    h2: ({node, ...props}) => (
+                      <h2 className={`text-xl font-bold mt-5 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`} {...props} />
+                    ),
+                    h3: ({node, ...props}) => (
+                      <h3 className={`text-lg font-semibold mt-4 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`} {...props} />
+                    ),
+                    p: ({node, ...props}) => (
+                      <p className={`mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} {...props} />
+                    ),
+                    ul: ({node, ...props}) => (
+                      <ul className={`list-disc list-inside mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} {...props} />
+                    ),
+                    ol: ({node, ...props}) => (
+                      <ol className={`list-decimal list-inside mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} {...props} />
+                    ),
+                    li: ({node, ...props}) => (
+                      <li className="mb-1" {...props} />
+                    ),
+                    code: ({node, inline, ...props}: any) => (
+                      inline ?
+                        <code className={`px-1.5 py-0.5 rounded text-sm font-mono ${darkMode ? 'bg-gray-800 text-blue-400' : 'bg-gray-100 text-blue-600'}`} {...props} /> :
+                        <code className={`block p-3 rounded text-sm font-mono overflow-x-auto ${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-100 text-gray-800'}`} {...props} />
+                    ),
+                    a: ({node, ...props}) => (
+                      <a className={`underline ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`} {...props} />
+                    ),
+                    blockquote: ({node, ...props}) => (
+                      <blockquote className={`border-l-4 pl-4 italic my-3 ${darkMode ? 'border-gray-600 text-gray-400' : 'border-gray-300 text-gray-600'}`} {...props} />
+                    ),
+                  }}
+                >
+                  {product.description}
+                </ReactMarkdown>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Similar Products */}
+        {similarProducts.length > 0 && (
+          <div>
+            <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-6`}>
+              Similar Products in {product.category}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {similarProducts.map((similarProduct) => (
+                <Link
+                  key={similarProduct.id}
+                  href={`/product/${similarProduct.id}`}
+                  className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow`}
+                >
+                  <div className={`h-32 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} flex items-center justify-center overflow-hidden`}>
+                    <img
+                      src={getImageUrl(similarProduct.image) || 'https://via.placeholder.com/200?text=No+Image'}
+                      alt={similarProduct.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/200?text=No+Image';
+                      }}
+                    />
+                  </div>
+                  <div className="p-3">
+                    <h3 className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-1 truncate`}>
+                      {similarProduct.name}
+                    </h3>
+                    <div className="flex justify-between items-center">
+                      <span className={`text-lg font-bold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                        ৳{Number(similarProduct.price).toFixed(2)}
+                      </span>
+                      <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {similarProduct.stock > 0 ? `${similarProduct.stock} left` : 'Out of stock'}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+        </div>
+      </div>
+    </Layout>
+  );
+}

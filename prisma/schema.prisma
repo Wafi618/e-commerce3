@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // or "mysql", "sqlite", "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  password  String
+  role      Role       @default(CUSTOMER)
+  phone     String?
+  city      String?
+  country   String?    @default("Bangladesh")
+  address   String?
+  house     String?
+  floor     String?
+  resetPin  String?    // 3-digit PIN for password reset
+  failedResetAttempts Int @default(0)
+  restrictedAccess Boolean @default(false) // true if user has no phone or PIN
+  darkMode  Boolean    @default(false) // user's dark mode preference
+  orders    Order[]
+  cartItems CartItem[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  price       Decimal     @db.Decimal(10, 2) // Using Decimal for precise money calculations
+  image       String      // image URL
+  images      String[]    @default([]) // multiple images
+  stock       Int
+  category    String
+  subcategory String?
+  description String?
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([category])
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  customer   String      // customer name
+  email      String
+  phone      String?
+  city       String?
+  country    String?
+  address    String?     // road address
+  house      String?     // house/building number
+  floor      String?     // floor/unit number
+  notes      String?     // additional delivery notes
+  total      Decimal     @db.Decimal(10, 2) // Using Decimal for precise money calculations
+  status     OrderStatus @default(PENDING)
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([status])
+  @@index([email])
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPING
+  COMPLETED
+  CANCELLED
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  subject    String?
+  message    String
+  isRead     Boolean  @default(false)
+  isPasswordReset Boolean @default(false) // true if message is a password reset request
+  createdAt  DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([isPasswordReset])
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2) // Using Decimal for precise money calculations (price at time of order)
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+

@@ -1,0 +1,162 @@
+import { NextApiRequest, NextApiResponse } from 'next';
+import { prisma } from '@/lib/prisma';
+
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const { id } = req.query;
+
+  // Validate ID
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid product ID',
+    });
+  }
+
+  const productId = parseInt(id);
+
+  if (isNaN(productId)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Product ID must be a number',
+    });
+  }
+
+  try {
+    if (req.method === 'GET') {
+      // GET /api/products/[id] - Fetch a single product with similar products
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+      });
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found',
+        });
+      }
+
+      // Fetch similar products from the same category (excluding current product)
+      const similarProducts = await prisma.product.findMany({
+        where: {
+          category: product.category,
+          id: { not: productId },
+        },
+        take: 8, // Limit to 8 similar products
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          product,
+          similarProducts,
+        },
+      });
+    } else if (req.method === 'PUT') {
+      // PUT /api/products/[id] - Update a product
+      const { name, price, image, images, stock, category, subcategory, description } = req.body;
+
+      // Check if product exists
+      const existingProduct = await prisma.product.findUnique({
+        where: { id: productId },
+      });
+
+      if (!existingProduct) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found',
+        });
+      }
+
+      // Prepare update data (only include provided fields)
+      const updateData: any = {};
+
+      if (name !== undefined) updateData.name = name;
+      if (price !== undefined) {
+        if (typeof price !== 'number' || price <= 0) {
+          return res.status(400).json({
+            success: false,
+            error: 'Price must be a positive number',
+          });
+        }
+        updateData.price = parseFloat(price.toString());
+      }
+      if (image !== undefined) updateData.image = image;
+      if (images !== undefined) updateData.images = Array.isArray(images) ? images : [];
+      if (stock !== undefined) {
+        if (typeof stock !== 'number' || stock < 0) {
+          return res.status(400).json({
+            success: false,
+            error: 'Stock must be a non-negative number',
+          });
+        }
+        updateData.stock = parseInt(stock.toString());
+      }
+      if (category !== undefined) updateData.category = category;
+      if (subcategory !== undefined) updateData.subcategory = subcategory;
+      if (description !== undefined) updateData.description = description;
+
+      const updatedProduct = await prisma.product.update({
+        where: { id: productId },
+        data: updateData,
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: updatedProduct,
+      });
+    } else if (req.method === 'DELETE') {
+      // DELETE /api/products/[id] - Delete a product
+      const existingProduct = await prisma.product.findUnique({
+        where: { id: productId },
+      });
+
+      if (!existingProduct) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found',
+        });
+      }
+
+      // Check if product is in any orders (optional business logic)
+      const orderItemsCount = await prisma.orderItem.count({
+        where: { productId },
+      });
+
+      if (orderItemsCount > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot delete product that is part of existing orders',
+        });
+      }
+
+      await prisma.product.delete({
+        where: { id: productId },
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Product deleted successfully',
+      });
+    } else {
+      // Method not allowed
+      res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+      return res.status(405).json({
+        success: false,
+        error: `Method ${req.method} Not Allowed`,
+      });
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });  }
+}
