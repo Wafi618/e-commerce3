@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Input } from '@/components/ui/Input';
 import { useAuth, useTheme } from '@/contexts';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
   const { darkMode } = useTheme();
+  const { addNotification } = useNotification();
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
@@ -48,12 +50,12 @@ export default function ProfilePage() {
 
       if (data.success) {
         setUser(data.data);
-        alert('Profile updated successfully!');
+        addNotification('Profile updated successfully!', 'success');
       } else {
-        alert(data.error || 'Failed to update profile');
+        addNotification(data.error || 'Failed to update profile', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to update profile.');
+      addNotification('Network error. Failed to update profile.', 'error');
       console.error('Profile update error:', err);
     } finally {
       setProfileLoading(false);

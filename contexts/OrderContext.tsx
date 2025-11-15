@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useProduct } from './ProductContext';
 import { useMessage } from './MessageContext';
+import { useNotification } from './NotificationContext';
 
 /**
  * Order Interface
@@ -67,6 +68,7 @@ const OrderContext = createContext<OrderContextValue | undefined>(undefined);
 export function OrderProvider({ children }: OrderProviderProps) {
   const { fetchProducts } = useProduct();
   const { fetchMessages } = useMessage();
+  const { addNotification, showConfirmation } = useNotification();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
@@ -109,11 +111,12 @@ export function OrderProvider({ children }: OrderProviderProps) {
         await fetchOrders();
         // Refetch products to update stock display after status change
         await fetchProducts();
+        addNotification(`Order #${orderId} status updated to ${newStatus}`, 'success');
       } else {
-        alert(data.error || 'Failed to update order status');
+        addNotification(data.error || 'Failed to update order status', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to update order.');
+      addNotification('Network error. Failed to update order.', 'error');
       console.error('Update order error:', err);
     }
   };
@@ -125,35 +128,37 @@ export function OrderProvider({ children }: OrderProviderProps) {
    */
   const deleteOrder = async (orderId: string, orderStatus: string) => {
     if (orderStatus !== 'completed' && orderStatus !== 'cancelled') {
-      alert('Only completed or cancelled orders can be deleted');
+      addNotification('Only completed or cancelled orders can be deleted', 'warning');
       return;
     }
 
-    if (!confirm('Are you sure you want to permanently delete this order? This action cannot be undone.')) {
-      return;
-    }
+    showConfirmation(
+      'Delete Order',
+      `Are you sure you want to permanently delete Order #${orderId}? This action cannot be undone.`,
+      async () => {
+        try {
+          const response = await fetch('/api/orders/delete', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ orderId }),
+          });
 
-    try {
-      const response = await fetch('/api/orders/delete', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ orderId }),
-      });
+          const data = await response.json();
 
-      const data = await response.json();
-
-      if (data.success) {
-        await fetchOrders();
-        alert('Order deleted successfully');
-      } else {
-        alert(data.error || 'Failed to delete order');
+          if (data.success) {
+            await fetchOrders();
+            addNotification('Order deleted successfully', 'success');
+          } else {
+            addNotification(data.error || 'Failed to delete order', 'error');
+          }
+        } catch (err) {
+          addNotification('Network error. Failed to delete order.', 'error');
+          console.error('Delete order error:', err);
+        }
       }
-    } catch (err) {
-      alert('Network error. Failed to delete order.');
-      console.error('Delete order error:', err);
-    }
+    );
   };
 
   // Orders are now fetched by the admin page when it mounts

@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ShoppingCart, Moon, Sun, LogIn, LogOut, UserCircle, History, User, MessageSquare, Menu, X, MessageCircle } from 'lucide-react';
 import { useAuth, useCart, useTheme, useUI, useMessage } from '@/contexts';
+import { ToastContainer } from './ui/ToastContainer';
+import { ConfirmModal } from './modals/ConfirmModal';
 
 interface LayoutProps {
   children: ReactNode;
@@ -30,6 +32,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
 
   return (
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Notification Containers */}
+      <ToastContainer />
+      <ConfirmModal />
+
       {/* Navigation */}
       <nav className={`${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm sticky top-0 z-20`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

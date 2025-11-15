@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/Badge';
 import { ProductModal } from '@/components/modals/ProductModal';
 import { OrderDetailsModal } from '@/components/modals/OrderDetailsModal';
 import { MessageModal } from '@/components/modals/MessageModal';
-import { useAuth, useProduct, useOrder, useMessage, useTheme } from '@/contexts';
+import { useAuth, useProduct, useOrder, useMessage, useTheme, useNotification } from '@/contexts';
+import { ToastContainer } from '@/components/ui/ToastContainer';
+import { ConfirmModal } from '@/components/modals/ConfirmModal';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -31,6 +33,7 @@ export default function AdminPage() {
     fetchOrders
   } = useOrder();
   const { messages, setShowMessageModal, showMessageModal, fetchMessages } = useMessage();
+  const { addNotification, showConfirmation } = useNotification();
 
   // Admin panel always uses dark mode
   const darkMode = true;
@@ -66,18 +69,22 @@ export default function AdminPage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Password reset successfully!');
+        addNotification('Password reset successfully!', 'success');
         setShowResetModal(null);
       } else {
-        alert(data.error || 'Failed to reset password');
+        addNotification(data.error || 'Failed to reset password', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to reset password.');
+      addNotification('Network error. Failed to reset password.', 'error');
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-900">
+      {/* Notification Containers */}
+      <ToastContainer />
+      <ConfirmModal />
+
       <nav className="bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -270,7 +277,13 @@ export default function AdminPage() {
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => deleteProduct(product.id)}
+                              onClick={() =>
+                                showConfirmation(
+                                  'Delete Product',
+                                  `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+                                  () => deleteProduct(product.id)
+                                )
+                              }
                               disabled={loading}
                               className="p-2 text-red-400 hover:bg-gray-600 rounded disabled:opacity-50"
                             >

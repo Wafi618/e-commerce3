@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext';
 
 /**
  * Cart Item Interface
@@ -69,6 +70,7 @@ const CartContext = createContext<CartContextValue | undefined>(undefined);
 export function CartProvider({ children }: CartProviderProps) {
   const auth = useAuth();
   const { user, checkAuth } = auth;
+  const { addNotification } = useNotification();
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -235,7 +237,7 @@ export function CartProvider({ children }: CartProviderProps) {
     if (existing) {
       // Check if adding one more would exceed stock
       if (existing.quantity >= product.stock) {
-        alert(`Cannot add more. Only ${product.stock} items available in stock.`);
+        addNotification(`Cannot add more. Only ${product.stock} items available in stock.`, 'warning');
         return;
       }
       setCart(cart.map(item =>
@@ -244,7 +246,7 @@ export function CartProvider({ children }: CartProviderProps) {
     } else {
       // Check if product has stock
       if (product.stock < 1) {
-        alert('This product is out of stock.');
+        addNotification('This product is out of stock.', 'warning');
         return;
       }
       setCart([...cart, { ...product, quantity: 1 }]);
@@ -270,7 +272,7 @@ export function CartProvider({ children }: CartProviderProps) {
         const newQty = item.quantity + delta;
         // Check if increasing quantity would exceed stock
         if (delta > 0 && newQty > item.stock) {
-          alert(`Cannot add more. Only ${item.stock} items available in stock.`);
+          addNotification(`Cannot add more. Only ${item.stock} items available in stock.`, 'warning');
           return item;
         }
         return newQty > 0 ? { ...item, quantity: newQty } : item;
@@ -286,7 +288,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const handleCheckout = () => {
     // Check if user has mandatory profile fields filled
     if (user && (!user.phone || !user.city || !user.address)) {
-      alert('Please complete your profile (Phone, City, and Address) before checkout.');
+      addNotification('Please complete your profile (Phone, City, and Address) before checkout.', 'warning');
       // Redirect to profile page
       if (typeof window !== 'undefined') {
         window.location.href = '/profile';
@@ -317,7 +319,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const proceedToPayment = async () => {
     // Validate address
     if (!addressData.phone || !addressData.city || !addressData.address) {
-      alert('Please fill in required fields: Phone, City, and Address');
+      addNotification('Please fill in required fields: Phone, City, and Address', 'warning');
       return;
     }
 
@@ -354,10 +356,10 @@ export function CartProvider({ children }: CartProviderProps) {
         // Redirect to bKash Checkout
         window.location.href = data.bkashURL;
       } else {
-        alert(data.error || 'Failed to create checkout session');
+        addNotification(data.error || 'Failed to create checkout session', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to process checkout.');
+      addNotification('Network error. Failed to process checkout.', 'error');
       console.error('Checkout error:', err);
     } finally {
       setCheckoutLoading(false);
@@ -411,7 +413,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const reorder = (order: any, products: any[]) => {
     if (!order || !order.orderItems) {
-      alert('Invalid order for reordering.');
+      addNotification('Invalid order for reordering.', 'warning');
       return;
     }
 
@@ -455,9 +457,9 @@ export function CartProvider({ children }: CartProviderProps) {
     }
 
     if (message) {
-      alert(message);
+      addNotification(message, outOfStockItems.length > 0 ? 'warning' : 'success');
     } else {
-      alert('No items from this order could be reordered.');
+      addNotification('No items from this order could be reordered.', 'info');
     }
   };
 

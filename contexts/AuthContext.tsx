@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNotification } from './NotificationContext';
 
 /**
  * User Interface
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const { addNotification } = useNotification();
 
   /**
    * Checks if user is authenticated
@@ -93,15 +95,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(data.data);
         setShowAuthModal(false);
         if (data.data.restrictedAccess) {
-          alert('Login successful! Note: Your account has restricted access. Please add a phone number or PIN to unlock all features.');
+          addNotification(
+            'Login successful! Note: Your account has restricted access. Please add a phone number or PIN to unlock all features.',
+            'warning'
+          );
         } else {
-          alert('Login successful!');
+          addNotification('Login successful!', 'success');
         }
       } else {
-        alert(data.error || 'Login failed');
+        addNotification(data.error || 'Login failed', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to login.');
+      addNotification('Network error. Failed to login.', 'error');
       console.error('Login error:', err);
     }
   };
@@ -128,10 +133,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (data.success) {
         await handleLogin(email, password);
       } else {
-        alert(data.error || 'Registration failed');
+        addNotification(data.error || 'Registration failed', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to register.');
+      addNotification('Network error. Failed to register.', 'error');
       console.error('Register error:', err);
     }
   };
@@ -144,7 +149,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await fetch('/api/auth/logout', { method: 'POST' });
       setUser(null);
       localStorage.removeItem('shopping_cart');
-      alert('Logged out successfully');
+      addNotification('Logged out successfully', 'info');
     } catch (err) {
       console.error('Logout error:', err);
     }

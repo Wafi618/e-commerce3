@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export const AuthModal: React.FC = () => {
   // Consume contexts directly
@@ -147,6 +148,7 @@ export const AuthModal: React.FC = () => {
 };
 
 const ForgotPasswordModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { addNotification } = useNotification();
   const [step, setStep] = useState<'method' | 'phone' | 'pin' | 'contact-admin'>('method');
   const [formData, setFormData] = useState({
     email: '',
@@ -177,16 +179,16 @@ const ForgotPasswordModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       const data = await response.json();
 
       if (data.success) {
-        alert('Password reset successful! Please login with your new password.');
+        addNotification('Password reset successful! Please login with your new password.', 'success');
         onClose();
       } else {
-        alert(data.error || 'Password reset failed');
+        addNotification(data.error || 'Password reset failed', 'error');
         if (data.attemptsRemaining !== undefined) {
           setAttemptsRemaining(data.attemptsRemaining);
         }
       }
     } catch (err) {
-      alert('Network error. Failed to reset password.');
+      addNotification('Network error. Failed to reset password.', 'error');
     } finally {
       setLoading(false);
     }
@@ -208,13 +210,13 @@ const ForgotPasswordModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       const data = await response.json();
 
       if (data.success) {
-        alert(data.message || 'Password reset request sent to admin successfully!');
+        addNotification(data.message || 'Password reset request sent to admin successfully!', 'success');
         onClose();
       } else {
-        alert(data.error || 'Failed to send request');
+        addNotification(data.error || 'Failed to send request', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to send request.');
+      addNotification('Network error. Failed to send request.', 'error');
     } finally {
       setLoading(false);
     }

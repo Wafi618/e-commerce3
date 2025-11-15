@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserCircle, Trash2, Unlock, Key, Search } from 'lucide-react';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export const CustomersTab: React.FC = () => {
   const [customers, setCustomers] = useState([]);
@@ -10,6 +11,7 @@ export const CustomersTab: React.FC = () => {
   const [searchEmail, setSearchEmail] = useState('');
   const [searchName, setSearchName] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
+  const { addNotification, showConfirmation } = useNotification();
 
   // Admin panel always uses dark mode
   const darkMode = true;
@@ -33,31 +35,33 @@ export const CustomersTab: React.FC = () => {
   }, []);
 
   const deleteCustomer = async (customerId: string) => {
-    if (!confirm('Are you sure you want to permanently delete this customer? This action cannot be undone.')) {
-      return;
-    }
+    showConfirmation(
+      'Delete Customer',
+      'Are you sure you want to permanently delete this customer? This action cannot be undone.',
+      async () => {
+        try {
+          const response = await fetch('/api/users/delete-customer', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ customerId }),
+          });
 
-    try {
-      const response = await fetch('/api/users/delete-customer', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ customerId }),
-      });
+          const data = await response.json();
 
-      const data = await response.json();
-
-      if (data.success) {
-        setCustomers(customers.filter((c: any) => c.id !== customerId));
-        alert('Customer deleted successfully');
-      } else {
-        alert(data.error || 'Failed to delete customer');
+          if (data.success) {
+            setCustomers(customers.filter((c: any) => c.id !== customerId));
+            addNotification('Customer deleted successfully', 'success');
+          } else {
+            addNotification(data.error || 'Failed to delete customer', 'error');
+          }
+        } catch (err) {
+          addNotification('Network error. Failed to delete customer.', 'error');
+          console.error('Delete customer error:', err);
+        }
       }
-    } catch (err) {
-      alert('Network error. Failed to delete customer.');
-      console.error('Delete customer error:', err);
-    }
+    );
   };
 
   const unlockAccount = async (customerId: string) => {
@@ -71,7 +75,7 @@ export const CustomersTab: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert('Account unlocked successfully!');
+        addNotification('Account unlocked successfully!', 'success');
         // Refresh customers list
         const refreshResponse = await fetch('/api/users/customers');
         const refreshData = await refreshResponse.json();
@@ -79,10 +83,10 @@ export const CustomersTab: React.FC = () => {
           setCustomers(refreshData.data);
         }
       } else {
-        alert(data.error || 'Failed to unlock account');
+        addNotification(data.error || 'Failed to unlock account', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to unlock account.');
+      addNotification('Network error. Failed to unlock account.', 'error');
     }
   };
 
@@ -97,13 +101,13 @@ export const CustomersTab: React.FC = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert('Password reset successfully!');
+        addNotification('Password reset successfully!', 'success');
         setShowResetModal(null);
       } else {
-        alert(data.error || 'Failed to reset password');
+        addNotification(data.error || 'Failed to reset password', 'error');
       }
     } catch (err) {
-      alert('Network error. Failed to reset password.');
+      addNotification('Network error. Failed to reset password.', 'error');
     }
   };
 

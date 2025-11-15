@@ -5,12 +5,14 @@ import { Layout } from '@/components/Layout';
 import { getImageUrl } from '@/utils/imageUtils';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth, useCart, useProduct, useTheme } from '@/contexts';
+import { useNotification } from '@/contexts/NotificationContext';
 
 export default function MyOrdersPage() {
   const { user } = useAuth();
   const { darkMode } = useTheme();
   const { products } = useProduct();
   const { reorder } = useCart();
+  const { addNotification, showConfirmation } = useNotification();
   const [localOrders, setLocalOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,31 +35,39 @@ export default function MyOrdersPage() {
   }, []);
 
   const handleCancelOrder = async (orderId: string) => {
-    if (!confirm('Are you sure you want to cancel this order?')) return;
+    showConfirmation(
+      'Cancel Order',
+      'Are you sure you want to cancel this order?',
+      async () => {
+        try {
+          const response = await fetch('/api/orders/cancel', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ orderId }),
+          });
 
-    try {
-      const response = await fetch('/api/orders/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ orderId }),
-      });
+          const data = await response.json();
 
-      const data = await response.json();
-
-      if (data.success) {
-        alert(data.message || 'Order cancelled successfully');
-        setLocalOrders(localOrders.map(order =>
-          order.id === orderId ? { ...order, status: 'cancelled' } : order
-        ));
-      } else {
-        alert(data.error || 'Failed to cancel order');
+          if (data.success) {
+            addNotification(data.message || 'Order cancelled successfully', 'success');
+            setLocalOrders(
+              localOrders.map((order) =>
+                order.id === orderId
+                  ? { ...order, status: 'cancelled' }
+                  : order
+              )
+            );
+          } else {
+            addNotification(data.error || 'Failed to cancel order', 'error');
+          }
+        } catch (err) {
+          addNotification('Network error. Failed to cancel order.', 'error');
+          console.error('Cancel order error:', err);
+        }
       }
-    } catch (err) {
-      alert('Network error. Failed to cancel order.');
-      console.error('Cancel order error:', err);
-    }
+    );
   };
 
   return (

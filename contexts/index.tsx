@@ -9,4 +9,5 @@ export { AuthProvider, useAuth } from './AuthContext';
 export { CartProvider, useCart } from './CartContext';
 export { ProductProvider, useProduct } from './ProductContext';
 export { OrderProvider, useOrder } from './OrderContext';
+export { NotificationProvider, useNotification } from './NotificationContext';
 export { AppProvider } from './AppProvider';

@@ -6,6 +6,7 @@ import { CartProvider } from './CartContext';
 import { ProductProvider } from './ProductContext';
 import { OrderProvider } from './OrderContext';
 import { MessageProvider } from './MessageContext';
+import { NotificationProvider } from './NotificationContext';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -39,19 +40,21 @@ function AuthCartBridge({ children }: { children: ReactNode }) {
 export function AppProvider({ children }: AppProviderProps) {
   return (
     <UIProvider>
-      <MessageProvider>
-        <AuthProvider>
-          <ThemeProvider>
-            <AuthCartBridge>
-              <ProductProvider>
-                <OrderProvider>
-                  {children}
-                </OrderProvider>
-              </ProductProvider>
-            </AuthCartBridge>
-          </ThemeProvider>
-        </AuthProvider>
-      </MessageProvider>
+      <NotificationProvider>
+        <MessageProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <AuthCartBridge>
+                <ProductProvider>
+                  <OrderProvider>
+                    {children}
+                  </OrderProvider>
+                </ProductProvider>
+              </AuthCartBridge>
+            </ThemeProvider>
+          </AuthProvider>
+        </MessageProvider>
+      </NotificationProvider>
     </UIProvider>
   );
 }
