@@ -1,38 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Search, Package } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { getImageUrl } from '@/utils/imageUtils';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { ParticlesBackground } from '@/components/ParticlesBackground';
-import { useAuth, useCart, useProduct, useTheme } from '@/contexts';
-
-// Modals
-import { MessageModal } from '@/components/modals/MessageModal';
-import { SearchModal } from '@/components/modals/SearchModal';
-import { AddressModal } from '@/components/modals/AddressModal';
-import { AuthModal } from '@/components/modals/AuthModal';
-import { OrderDetailsModal } from '@/components/modals/OrderDetailsModal';
-
-// Import contexts to check modal visibility
-import { useOrder, useMessage } from '@/contexts';
+import { useCart, useProduct, useTheme } from '@/contexts';
 
 export default function HomePage() {
-  const { showAuthModal } = useAuth();
-  const { addToCart, showAddressModal } = useCart();
+  const { addToCart } = useCart();
   const {
     products,
     categories,
     selectedCategory,
     setSelectedCategory,
     setShowSearchModal,
-    showSearchModal,
     loading,
     error
   } = useProduct();
   const { darkMode } = useTheme();
-  const { showOrderDetailsModal } = useOrder();
-  const { showMessageModal } = useMessage();
   const [animatingProductId, setAnimatingProductId] = useState<string | null>(null);
 
   const handleAddToCart = (product: any) => {
@@ -166,13 +152,6 @@ export default function HomePage() {
         )}
         </div>
       </div>
-
-      {/* Modals */}
-      {showAuthModal && <AuthModal />}
-      {showSearchModal && <SearchModal />}
-      {showAddressModal && <AddressModal />}
-      {showOrderDetailsModal && <OrderDetailsModal />}
-      {showMessageModal && <MessageModal />}
     </Layout>
   );
 }

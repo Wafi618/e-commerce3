@@ -2,9 +2,14 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ShoppingCart, Moon, Sun, LogIn, LogOut, UserCircle, History, User, MessageSquare, Menu, X, MessageCircle } from 'lucide-react';
-import { useAuth, useCart, useTheme, useUI, useMessage } from '@/contexts';
+import { useAuth, useCart, useTheme, useUI, useMessage, useProduct, useOrder } from '@/contexts';
 import { ToastContainer } from './ui/ToastContainer';
 import { ConfirmModal } from './modals/ConfirmModal';
+import { AuthModal } from './modals/AuthModal';
+import { SearchModal } from './modals/SearchModal';
+import { AddressModal } from './modals/AddressModal';
+import { OrderDetailsModal } from './modals/OrderDetailsModal';
+import { MessageModal } from './modals/MessageModal';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,11 +19,13 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = false }) => {
   const router = useRouter();
-  const { user, setShowAuthModal, setAuthMode, handleLogout } = useAuth();
-  const { cart } = useCart();
+  const { user, showAuthModal, setShowAuthModal, setAuthMode, handleLogout } = useAuth();
+  const { cart, showAddressModal } = useCart();
   const { darkMode, toggleDarkMode } = useTheme();
   const { isMounted } = useUI();
-  const { setShowMessageModal } = useMessage();
+  const { showMessageModal, setShowMessageModal } = useMessage();
+  const { showSearchModal } = useProduct();
+  const { showOrderDetailsModal } = useOrder();
   const [isCartUpdated, setIsCartUpdated] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -253,6 +260,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
           </div>
         </div>
       </footer>
+
+      {/* === ADD THIS BLOCK HERE === */}
+      {showAuthModal && <AuthModal />}
+      {showSearchModal && <SearchModal />}
+      {showAddressModal && <AddressModal />}
+      {showOrderDetailsModal && <OrderDetailsModal />}
+      {showMessageModal && <MessageModal />}
+      {/* ========================== */}
+
     </div>
   );
 };
