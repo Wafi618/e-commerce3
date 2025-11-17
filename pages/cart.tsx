@@ -4,7 +4,6 @@ import { Layout } from '@/components/Layout';
 import { getImageUrl } from '@/utils/imageUtils';
 import { useCart, useTheme } from '@/contexts';
 import Link from 'next/link';
-import { AddressModal } from '@/components/modals/AddressModal';
 
 export default function CartPage() {
   const {
@@ -14,7 +13,6 @@ export default function CartPage() {
     cartTotal,
     handleCheckout,
     checkoutLoading,
-    showAddressModal
   } = useCart();
   const { darkMode } = useTheme();
 
@@ -97,9 +95,6 @@ export default function CartPage() {
           </div>
         )}
       </div>
-
-      {/* Address Modal */}
-      {showAddressModal && <AddressModal />}
     </Layout>
   );
 }
