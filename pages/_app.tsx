@@ -4,7 +4,7 @@ import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <AppProvider>
+    <AppProvider initialData={pageProps}>
       <Component {...pageProps} />
     </AppProvider>
   );

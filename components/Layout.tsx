@@ -233,22 +233,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center space-y-4">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a
+              <Link
                 href="/contact"
                 className={`${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} font-medium`}
               >
                 Contact Us | যোগাযোগ করুন
-              </a>
+              </Link>
               <span className={`hidden sm:inline ${darkMode ? 'text-gray-600' : 'text-gray-300'}`}>|</span>
               <a
                 href="https://wa.me/19417876746?text=Hi!%20I%20have%20a%20question%20about%20Star%20Accessories"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  darkMode
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${darkMode
                     ? 'bg-green-600 text-white hover:bg-green-700'
                     : 'bg-green-500 text-white hover:bg-green-600'
-                }`}
+                  }`}
               >
                 <MessageCircle className="w-5 h-5" />
                 Chat on WhatsApp

@@ -50,6 +50,16 @@ export default async function handler(
         date: order.createdAt.toISOString().split('T')[0],
         items: order.orderItems.length,
         orderItems: order.orderItems,
+        paymentMethod: order.paymentMethod,
+        paymentPhoneNumber: order.paymentPhoneNumber,
+        paymentTrxId: order.paymentTrxId,
+        phone: order.phone,
+        address: order.address,
+        city: order.city,
+        country: order.country,
+        house: order.house,
+        floor: order.floor,
+        notes: order.notes,
       }));
 
       return res.status(200).json({
@@ -110,5 +120,6 @@ export default async function handler(
       success: false,
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
-    });  }
+    });
+  }
 }

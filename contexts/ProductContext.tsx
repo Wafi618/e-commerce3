@@ -49,6 +49,7 @@ interface ProductContextValue {
 
 interface ProductProviderProps {
   children: ReactNode;
+  initialProducts?: Product[];
 }
 
 /**
@@ -62,10 +63,10 @@ const ProductContext = createContext<ProductContextValue | undefined>(undefined)
  * Product Provider Component
  * Provides product management functionality including search and filtering
  */
-export function ProductProvider({ children }: ProductProviderProps) {
+export function ProductProvider({ children, initialProducts }: ProductProviderProps) {
   const { searchInputRef } = useUI();
 
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(initialProducts || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -207,11 +208,20 @@ export function ProductProvider({ children }: ProductProviderProps) {
    * Get unique categories from products (memoized to prevent re-renders)
    */
   const categories = useMemo(() => {
+    if (searchQuery) return ['All'];
     return ['All', ...Array.from(new Set(products.map(p => p.category)))];
-  }, [products]);
+  }, [products, searchQuery]);
+
+  const initialLoadRef = React.useRef(true);
 
   // Fetch products on mount and when filters change
   useEffect(() => {
+    // If we have initial products and no filters are active, don't fetch immediately
+    if (initialLoadRef.current && initialProducts && selectedCategory === 'All' && !searchQuery) {
+      initialLoadRef.current = false;
+      return;
+    }
+    initialLoadRef.current = false;
     fetchProducts();
   }, [selectedCategory, searchQuery]);
 
@@ -241,7 +251,13 @@ export function ProductProvider({ children }: ProductProviderProps) {
     error,
     setError,
     selectedCategory,
-    setSelectedCategory,
+    setSelectedCategory: (category: string) => {
+      if (category === 'All') {
+        setSearchQuery('');
+        setSearchTerm('');
+      }
+      setSelectedCategory(category);
+    },
     searchTerm,
     setSearchTerm,
     searchQuery,

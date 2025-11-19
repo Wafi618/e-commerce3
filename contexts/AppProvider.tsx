@@ -37,7 +37,7 @@ function AuthCartBridge({ children }: { children: ReactNode }) {
  * 6. ProductProvider (depends on UIProvider)
  * 7. OrderProvider (depends on UIProvider, ProductProvider, MessageProvider)
  */
-export function AppProvider({ children }: AppProviderProps) {
+export function AppProvider({ children, initialData }: AppProviderProps & { initialData?: any }) {
   return (
     <UIProvider>
       <NotificationProvider>
@@ -45,7 +45,7 @@ export function AppProvider({ children }: AppProviderProps) {
           <AuthProvider>
             <ThemeProvider>
               <AuthCartBridge>
-                <ProductProvider>
+                <ProductProvider initialProducts={initialData?.products}>
                   <OrderProvider>
                     {children}
                   </OrderProvider>

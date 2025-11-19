@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { serialize } from 'cookie';
 import { prisma } from '@/lib/prisma';
+import { loginSchema } from '@/lib/schemas';
 
 // Use a strong secret in production - store in environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -20,15 +21,16 @@ export default async function handler(
   }
 
   try {
-    const { email, password } = req.body;
-
-    // Validation
-    if (!email || !password) {
+    // Zod Validation
+    const result = loginSchema.safeParse(req.body);
+    if (!result.success) {
       return res.status(400).json({
         success: false,
-        error: 'Email and password are required',
+        error: result.error.issues[0].message,
       });
     }
+
+    const { email, password } = result.data;
 
     // Find user
     const user = await prisma.user.findUnique({

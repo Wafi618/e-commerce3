@@ -18,6 +18,7 @@ interface ConfirmModalState {
 
 interface NotificationContextValue {
   addNotification: (message: string, type: NotificationType) => void;
+  removeNotification: (id: string) => void;
   showConfirmation: (
     title: string,
     message: string,
@@ -38,8 +39,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
-    onCancel: () => {},
+    onConfirm: () => { },
+    onCancel: () => { },
   });
 
   const addNotification = (message: string, type: NotificationType) => {
@@ -76,13 +77,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       isOpen: false,
       title: '',
       message: '',
-      onConfirm: () => {},
-      onCancel: () => {},
+      onConfirm: () => { },
+      onCancel: () => { },
     });
+  };
+
+  const removeNotification = (id: string) => {
+    setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id));
   };
 
   const value = {
     addNotification,
+    removeNotification,
     showConfirmation,
     toasts,
     confirmModal,

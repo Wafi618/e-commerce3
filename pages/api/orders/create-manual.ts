@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { manualCheckoutSchema } from '@/lib/schemas';
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,6 +11,15 @@ export default async function handler(
   }
 
   try {
+    const result = manualCheckoutSchema.safeParse(req.body);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error.issues.map(e => e.message).join(', '),
+      });
+    }
+
     const {
       amount,
       cartItems,
@@ -23,131 +33,92 @@ export default async function handler(
       house,
       floor,
       notes,
-      bkashNumber, // New manual field
-      trxId, // New manual field
-    } = req.body;
+      bkashNumber,
+      trxId,
+    } = result.data;
 
-    // CRITICAL: Validate stock availability
-    for (const item of cartItems) {
-      const product = await prisma.product.findUnique({
-        where: { id: item.id },
-        select: { stock: true, name: true },
-      });
+    // Use interactive transaction to ensure stock safety
+    const orderId = await prisma.$transaction(async (tx) => {
+      // 1. Validate and Reserve Stock
+      for (const item of cartItems) {
+        const product = await tx.product.findUnique({
+          where: { id: item.id },
+          select: { stock: true, name: true },
+        });
 
-      if (!product) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: `Product "${item.name}" not found`,
-          });
-      }
-
-      if (product.stock < item.quantity) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: `Insufficient stock for "${product.name}". Available: ${product.stock}, Requested: ${item.quantity}`,
-          });
-      }
-    }
-
-    // Reserve stock immediately by decrementing it
-    const stockReservations: Array<{
-      productId: number;
-      reservedQty: number;
-      previousStock: number;
-    }> = [];
-
-    for (const item of cartItems) {
-      const product = await prisma.product.findUnique({
-        where: { id: item.id },
-        select: { stock: true },
-      });
-
-      if (!product || product.stock < item.quantity) {
-        // Rollback all previous reservations
-        for (const reservation of stockReservations) {
-          await prisma.product.update({
-            where: { id: reservation.productId },
-            data: { stock: reservation.previousStock },
-          });
+        if (!product) {
+          throw new Error(`Product "${item.name}" not found`);
         }
 
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error: `Stock changed during checkout. Please try again.`,
-          });
+        if (product.stock < item.quantity) {
+          throw new Error(`Insufficient stock for "${product.name}". Available: ${product.stock}, Requested: ${item.quantity}`);
+        }
+
+        // Decrement stock
+        await tx.product.update({
+          where: { id: item.id },
+          data: { stock: { decrement: item.quantity } },
+        });
       }
 
-      // Decrement stock to reserve it
-      await prisma.product.update({
-        where: { id: item.id },
-        data: { stock: { decrement: item.quantity } },
-      });
-
-      stockReservations.push({
-        productId: item.id,
-        reservedQty: item.quantity,
-        previousStock: product.stock,
-      });
-    }
-
-    // Create a PENDING order with the manual payment details
-    const order = await prisma.order.create({
-      data: {
-        // Conditionally connect the user if a userId exists
-        ...(userId && {
-          user: {
-            connect: {
-              id: userId,
+      // 2. Create Order
+      const order = await tx.order.create({
+        data: {
+          // Conditionally connect the user if a userId exists
+          ...(userId && {
+            user: {
+              connect: {
+                id: userId,
+              },
             },
+          }),
+          customer: customerName,
+          email: customerEmail,
+          phone: phone || null,
+          city: city || null,
+          country: country || null,
+          address: address || null,
+          house: house || null,
+          floor: floor || null,
+          notes: notes || null,
+          total: new (require('decimal.js'))(amount as any),
+          status: 'PENDING', // Admin must verify this manually
+          paymentMethod: 'MANUAL_BKASH',
+          paymentPhoneNumber: bkashNumber,
+          paymentTrxId: trxId,
+          orderItems: {
+            create: cartItems.map((item: any) => ({
+              productId: item.id,
+              quantity: item.quantity,
+              price: item.price,
+            })),
           },
-        }),
-        customer: customerName,
-        email: customerEmail,
-        phone: phone || null,
-        city: city || null,
-        country: country || null,
-        address: address || null,
-        house: house || null,
-        floor: floor || null,
-        notes: notes || null,
-        total: amount,
-        status: 'PENDING', // Admin must verify this manually
-        paymentMethod: 'MANUAL_BKASH',
-        paymentPhoneNumber: bkashNumber,
-        paymentTrxId: trxId,
-        orderItems: {
-          create: cartItems.map((item: any) => ({
-            productId: item.id,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
-      },
-    });
-
-    // After order is created, clear the user's cart if they are logged in
-    if (userId) {
-      await prisma.cartItem.deleteMany({
-        where: {
-          userId: userId,
         },
       });
-    }
+
+      // 3. Clear Cart (if user logged in)
+      if (userId) {
+        await tx.cartItem.deleteMany({
+          where: {
+            userId: userId,
+          },
+        });
+      }
+
+      return order.id;
+    });
 
     return res.status(200).json({
       success: true,
-      orderId: order.id,
+      orderId: orderId,
       message: 'Order placed successfully. Awaiting manual verification.',
     });
   } catch (error) {
     console.error('Manual order creation error:', error);
-    return res.status(500).json({ success: false, error: 'Something went wrong' });
+    return res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Something went wrong'
+    });
   } finally {
     await prisma.$disconnect();
   }

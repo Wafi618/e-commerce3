@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { checkoutSchema } from '@/lib/schemas';
 
 const BKASH_USERNAME = process.env.BKASH_USERNAME || '';
 const BKASH_PASSWORD = process.env.BKASH_PASSWORD || '';
@@ -12,6 +13,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const result = checkoutSchema.safeParse(req.body);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error.issues.map(e => e.message).join(', '),
+      });
+    }
+
     const {
       amount,
       cartItems,
@@ -25,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       house,
       floor,
       notes
-    } = req.body;
+    } = result.data;
 
     // CRITICAL: Validate stock availability for ALL items BEFORE creating order
     // This prevents race conditions where multiple users buy the same last item
@@ -102,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         house: house || null,
         floor: floor || null,
         notes: notes || null,
-        total: amount,
+        total: new (require('decimal.js'))(amount as any),
         status: 'PENDING',
         orderItems: {
           create: cartItems.map((item: any) => ({

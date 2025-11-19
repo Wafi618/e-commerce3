@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { registerSchema } from '@/lib/schemas';
 
 
 export default async function handler(
@@ -16,30 +17,16 @@ export default async function handler(
   }
 
   try {
-    const { email, password, name, phone, role } = req.body;
-
-    // Validation
-    if (!email || !password || !phone) {
+    // Zod Validation
+    const result = registerSchema.safeParse(req.body);
+    if (!result.success) {
       return res.status(400).json({
         success: false,
-        error: 'Email, password, and phone number are required',
+        error: result.error.issues[0].message,
       });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        error: 'Password must be at least 6 characters',
-      });
-    }
-
-    // Validate phone number (basic validation for Bangladesh)
-    if (!/^[0-9]{10,15}$/.test(phone)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please enter a valid phone number (10-15 digits)',
-      });
-    }
+    const { email, password, name, phone, role } = result.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

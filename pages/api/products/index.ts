@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { productSchema } from '@/lib/schemas';
 
 
 export default async function handler(
@@ -38,41 +39,25 @@ export default async function handler(
         data: products,
       });
     } else if (req.method === 'POST') {
-      // POST /api/products - Create a new product
-      const { name, price, image, images, stock, category, subcategory, description } = req.body;
+      // Zod Validation
+      const result = productSchema.safeParse(req.body);
 
-      // Validation
-      if (!name || price == null || stock == null || !category) {
+      if (!result.success) {
         return res.status(400).json({
           success: false,
-          error: 'Missing required fields: name, price, stock, category',
+          error: result.error.issues.map(e => e.message).join(', '),
         });
       }
 
-      const numericPrice = parseFloat(price);
-      const numericStock = parseInt(stock, 10);
-
-      if (isNaN(numericPrice) || numericPrice <= 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Price must be a positive number',
-        });
-      }
-
-      if (isNaN(numericStock) || numericStock < 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Stock must be a non-negative number',
-        });
-      }
+      const { name, price, image, images, stock, category, subcategory, description } = result.data;
 
       const product = await prisma.product.create({
         data: {
           name,
-          price: numericPrice,
-          image: image || '📦',
-          images: Array.isArray(images) ? images : [],
-          stock: numericStock,
+          price: price, // Zod transforms this to number
+          image: image,
+          images: images || [],
+          stock: stock, // Zod transforms this to number
           category,
           subcategory: subcategory || null,
           description: description || null,

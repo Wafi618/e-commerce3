@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { productSchema } from '@/lib/schemas';
 
 
 export default async function handler(
@@ -59,8 +60,18 @@ export default async function handler(
         },
       });
     } else if (req.method === 'PUT') {
-      // PUT /api/products/[id] - Update a product
-      const { name, price, image, images, stock, category, subcategory, description } = req.body;
+      // Validate partial update
+      const partialProductSchema = productSchema.partial();
+      const result = partialProductSchema.safeParse(req.body);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          error: result.error.issues.map(e => e.message).join(', '),
+        });
+      }
+
+      const { name, price, image, images, stock, category, subcategory, description } = result.data;
 
       // Check if product exists
       const existingProduct = await prisma.product.findUnique({
@@ -78,26 +89,10 @@ export default async function handler(
       const updateData: any = {};
 
       if (name !== undefined) updateData.name = name;
-      if (price !== undefined) {
-        if (typeof price !== 'number' || price <= 0) {
-          return res.status(400).json({
-            success: false,
-            error: 'Price must be a positive number',
-          });
-        }
-        updateData.price = parseFloat(price.toString());
-      }
+      if (price !== undefined) updateData.price = price;
       if (image !== undefined) updateData.image = image;
-      if (images !== undefined) updateData.images = Array.isArray(images) ? images : [];
-      if (stock !== undefined) {
-        if (typeof stock !== 'number' || stock < 0) {
-          return res.status(400).json({
-            success: false,
-            error: 'Stock must be a non-negative number',
-          });
-        }
-        updateData.stock = parseInt(stock.toString());
-      }
+      if (images !== undefined) updateData.images = images;
+      if (stock !== undefined) updateData.stock = stock;
       if (category !== undefined) updateData.category = category;
       if (subcategory !== undefined) updateData.subcategory = subcategory;
       if (description !== undefined) updateData.description = description;
