@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { manualCheckoutSchema } from '@/lib/schemas';
+import { sendDiscordNotification } from '@/utils/discord';
 
 export default async function handler(
   req: NextApiRequest,
@@ -107,6 +108,23 @@ export default async function handler(
 
       return order.id;
     });
+
+    // Send Discord Notification for Manual Order
+    const notificationItems = cartItems.map((item: any) => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price
+    }));
+
+    await sendDiscordNotification({
+      id: orderId, // This is returned from the transaction
+      customer: customerName,
+      phone: phone,
+      total: amount,
+      address: address,
+      city: city,
+      paymentMethod: 'MANUAL_BKASH'
+    }, notificationItems);
 
     return res.status(200).json({
       success: true,

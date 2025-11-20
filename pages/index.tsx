@@ -46,6 +46,9 @@ export default function HomePage() {
     categories,
     selectedCategory,
     setSelectedCategory,
+    subcategories,
+    selectedSubcategory,
+    setSelectedSubcategory,
     setShowSearchModal,
     loading,
     error
@@ -87,16 +90,36 @@ export default function HomePage() {
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${selectedCategory === cat
-                      ? 'bg-blue-600 text-white'
-                      : darkMode
-                        ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-                        : 'bg-white text-gray-700 hover:bg-gray-100'
+                    ? 'bg-blue-600 text-white'
+                    : darkMode
+                      ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
                     }`}
                 >
                   {cat}
                 </button>
               ))}
             </div>
+
+            {/* Subcategories */}
+            {selectedCategory !== 'All' && subcategories.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 mt-2">
+                {subcategories.map(sub => (
+                  <button
+                    key={sub}
+                    onClick={() => setSelectedSubcategory(sub)}
+                    className={`px-3 py-1.5 text-sm rounded-lg whitespace-nowrap transition-colors ${selectedSubcategory === sub
+                      ? 'bg-blue-500 text-white'
+                      : darkMode
+                        ? 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {error && (
@@ -150,8 +173,8 @@ export default function HomePage() {
                       <Link href={`/product/${product.id}`} className="flex-1">
                         <button
                           className={`w-full py-2 rounded-lg transition-colors ${darkMode
-                              ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                         >
                           View Details
@@ -164,10 +187,10 @@ export default function HomePage() {
                         }}
                         disabled={product.stock <= 0}
                         className={`flex-1 py-2 rounded-lg transition-colors ${product.stock <= 0
-                            ? darkMode
-                              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                          ? darkMode
+                            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
                           }`}
                       >
                         {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}

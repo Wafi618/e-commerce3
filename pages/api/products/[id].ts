@@ -71,7 +71,7 @@ export default async function handler(
         });
       }
 
-      const { name, price, image, images, stock, category, subcategory, description } = result.data;
+      const { name, price, image, images, stock, category, subcategory, description, isArchived } = result.data;
 
       // Check if product exists
       const existingProduct = await prisma.product.findUnique({
@@ -96,6 +96,7 @@ export default async function handler(
       if (category !== undefined) updateData.category = category;
       if (subcategory !== undefined) updateData.subcategory = subcategory;
       if (description !== undefined) updateData.description = description;
+      if (isArchived !== undefined) updateData.isArchived = isArchived;
 
       const updatedProduct = await prisma.product.update({
         where: { id: productId },
@@ -147,11 +148,21 @@ export default async function handler(
         error: `Method ${req.method} Not Allowed`,
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error:', error);
+
+    // Handle Prisma Unique Constraint Violation
+    if (error.code === 'P2002' && error.meta?.target?.includes('name')) {
+      return res.status(400).json({
+        success: false,
+        error: 'A product with this name already exists. Please use a unique name.',
+      });
+    }
+
     return res.status(500).json({
       success: false,
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
-    });  }
+    });
+  }
 }

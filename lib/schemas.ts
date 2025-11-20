@@ -26,6 +26,7 @@ export const productSchema = z.object({
   category: z.string().min(1, 'Category is required'),
   subcategory: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  isArchived: z.boolean().optional(),
 });
 
 // --- Cart & Order Schemas ---
@@ -55,4 +56,15 @@ export const checkoutSchema = z.object({
 export const manualCheckoutSchema = checkoutSchema.extend({
   bkashNumber: z.union([z.string(), z.number()]).transform(val => String(val)).refine(val => val.length > 0, 'bKash number is required'),
   trxId: z.union([z.string(), z.number()]).transform(val => String(val)).refine(val => val.length > 0, 'Transaction ID is required'),
+});
+
+export const addressSchema = z.object({
+  label: z.string().min(1, 'Label is required'),
+  phone: z.string().min(1, 'Phone is required'),
+  city: z.string().min(1, 'City is required'),
+  country: z.string().min(1, 'Country is required'),
+  address: z.string().min(1, 'Address is required'),
+  house: z.string().optional().nullable(),
+  floor: z.string().optional().nullable(),
+  isDefault: z.boolean().optional(),
 });

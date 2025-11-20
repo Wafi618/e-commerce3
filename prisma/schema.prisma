@@ -29,6 +29,7 @@ model User {
   darkMode  Boolean    @default(false) // user's dark mode preference
   orders    Order[]
   cartItems CartItem[]
+  addresses Address[]
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
   createdAt DateTime   @default(now())
@@ -50,6 +51,7 @@ model Product {
   category    String
   subcategory String?
   description String?
+  isArchived  Boolean     @default(false)
   orderItems  OrderItem[]
   cartItems   CartItem[]
   createdAt   DateTime    @default(now())
@@ -134,6 +136,22 @@ model CartItem {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, productId])
+  @@index([userId])
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   // e.g. "Home", "Office"
+  phone     String
+  city      String
+  country   String
+  address   String
+  house     String?
+  floor     String?
+  isDefault Boolean  @default(false)
+
   @@index([userId])
 }
 

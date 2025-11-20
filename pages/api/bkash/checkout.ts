@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { checkoutSchema } from '@/lib/schemas';
+import { sendDiscordNotification } from '@/utils/discord';
 
 const BKASH_USERNAME = process.env.BKASH_USERNAME || '';
 const BKASH_PASSWORD = process.env.BKASH_PASSWORD || '';
@@ -202,6 +203,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(400).json({ success: false, error: 'Failed to create payment' });
     }
+
+    // Send Discord Notification
+    // We need to map cartItems to the format expected by the util
+    const notificationItems = cartItems.map((item: any) => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price
+    }));
+    // We pass the order object we just created
+    await sendDiscordNotification({
+      id: order.id,
+      customer: customerName,
+      phone: phone,
+      total: amount,
+      address: address,
+      city: city,
+      paymentMethod: 'ONLINE_BKASH'
+    }, notificationItems);
 
     return res.status(200).json({
       success: true,

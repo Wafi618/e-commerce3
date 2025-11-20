@@ -76,6 +76,7 @@ export default async function handler(
         house: true,
         floor: true,
         restrictedAccess: true,
+        darkMode: true,
       },
     });
 
@@ -89,5 +90,6 @@ export default async function handler(
       success: false,
       error: 'Failed to update profile',
       message: error instanceof Error ? error.message : 'Unknown error',
-    });  }
+    });
+  }
 }

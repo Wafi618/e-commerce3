@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Eye, FileText } from 'lucide-react';
+import { useProduct } from '@/contexts/ProductContext';
 
 interface ProductModalProps {
   product: any;
@@ -11,6 +12,8 @@ interface ProductModalProps {
 }
 
 export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onClose, loading }) => {
+  const { categories, products } = useProduct();
+
   const [formData, setFormData] = useState(product || {
     name: '',
     price: '',
@@ -21,7 +24,50 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
     images: [],
     description: ''
   });
+
+  // Derive subcategories for the selected category
+  const availableSubcategories = React.useMemo(() => {
+    if (!formData.category) return [];
+    const relevantProducts = products.filter(p => p.category === formData.category);
+    return Array.from(new Set(relevantProducts.map(p => p.subcategory).filter(Boolean))) as string[];
+  }, [products, formData.category]);
+
   const [descriptionTab, setDescriptionTab] = useState<'write' | 'preview'>('write');
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+
+    // Convert to Base64
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+
+      try {
+        const res = await fetch('/api/admin/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64 }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          setFormData({ ...formData, image: data.url });
+        } else {
+          alert('Upload failed');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error uploading image');
+      } finally {
+        setUploading(false);
+      }
+    };
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +135,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Electronics, Accessories"
                 required
+                list="category-list"
               />
+              <datalist id="category-list">
+                {categories.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -101,7 +153,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                 onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="e.g., Phones, Headphones"
+                list="subcategory-list"
               />
+              <datalist id="subcategory-list">
+                {availableSubcategories.map((sub) => (
+                  <option key={sub} value={sub} />
+                ))}
+              </datalist>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -139,6 +197,17 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Product Image URL *
             </label>
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Upload Image (Auto-fills URL)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploading}
+                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {uploading && <p className="text-xs text-blue-600 mt-1">Uploading to cloud...</p>}
+            </div>
             <input
               type="text"
               value={formData.image}
@@ -190,11 +259,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
               <button
                 type="button"
                 onClick={() => setDescriptionTab('write')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-t-lg text-sm font-medium transition-colors ${
-                  descriptionTab === 'write'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-t-lg text-sm font-medium transition-colors ${descriptionTab === 'write'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
               >
                 <FileText className="w-4 h-4" />
                 Write
@@ -202,11 +270,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
               <button
                 type="button"
                 onClick={() => setDescriptionTab('preview')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-t-lg text-sm font-medium transition-colors ${
-                  descriptionTab === 'preview'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-t-lg text-sm font-medium transition-colors ${descriptionTab === 'preview'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
               >
                 <Eye className="w-4 h-4" />
                 Preview
@@ -229,44 +296,44 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        table: ({node, ...props}) => (
+                        table: ({ node, ...props }) => (
                           <div className="overflow-x-auto my-2">
                             <table className="min-w-full divide-y divide-gray-200 border border-gray-200 text-sm" {...props} />
                           </div>
                         ),
-                        thead: ({node, ...props}) => (
+                        thead: ({ node, ...props }) => (
                           <thead className="bg-gray-50" {...props} />
                         ),
-                        th: ({node, ...props}) => (
+                        th: ({ node, ...props }) => (
                           <th className="px-3 py-1.5 text-left text-xs font-semibold text-gray-900" {...props} />
                         ),
-                        td: ({node, ...props}) => (
+                        td: ({ node, ...props }) => (
                           <td className="px-3 py-1.5 text-xs text-gray-700 border-t border-gray-200" {...props} />
                         ),
-                        h1: ({node, ...props}) => (
+                        h1: ({ node, ...props }) => (
                           <h1 className="text-xl font-bold mt-4 mb-2 text-gray-900" {...props} />
                         ),
-                        h2: ({node, ...props}) => (
+                        h2: ({ node, ...props }) => (
                           <h2 className="text-lg font-bold mt-3 mb-2 text-gray-900" {...props} />
                         ),
-                        h3: ({node, ...props}) => (
+                        h3: ({ node, ...props }) => (
                           <h3 className="text-base font-semibold mt-2 mb-1 text-gray-900" {...props} />
                         ),
-                        p: ({node, ...props}) => (
+                        p: ({ node, ...props }) => (
                           <p className="mb-2 text-gray-600" {...props} />
                         ),
-                        ul: ({node, ...props}) => (
+                        ul: ({ node, ...props }) => (
                           <ul className="list-disc list-inside mb-2 text-gray-600" {...props} />
                         ),
-                        ol: ({node, ...props}) => (
+                        ol: ({ node, ...props }) => (
                           <ol className="list-decimal list-inside mb-2 text-gray-600" {...props} />
                         ),
-                        code: ({node, inline, ...props}: any) => (
+                        code: ({ node, inline, ...props }: any) => (
                           inline ?
                             <code className="px-1 py-0.5 rounded text-xs font-mono bg-gray-200 text-blue-600" {...props} /> :
                             <code className="block p-2 rounded text-xs font-mono bg-gray-200 text-gray-800 overflow-x-auto" {...props} />
                         ),
-                        a: ({node, ...props}) => (
+                        a: ({ node, ...props }) => (
                           <a className="text-blue-600 hover:text-blue-700 underline" {...props} />
                         ),
                       }}

@@ -11,7 +11,9 @@ interface Product {
   description: string;
   image: string;
   category: string;
+  subcategory?: string;
   stock: number;
+  isArchived?: boolean;
 }
 
 /**
@@ -26,6 +28,9 @@ interface ProductContextValue {
   setError: (error: string | null) => void;
   selectedCategory: string;
   setSelectedCategory: (category: string) => void;
+  selectedSubcategory: string;
+  setSelectedSubcategory: (subcategory: string) => void;
+  subcategories: string[];
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   searchQuery: string;
@@ -70,6 +75,7 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState<Product[]>([]);
@@ -89,6 +95,9 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
       const params = new URLSearchParams();
       if (selectedCategory !== 'All') {
         params.append('category', selectedCategory);
+      }
+      if (selectedSubcategory !== 'All') {
+        params.append('subcategory', selectedSubcategory);
       }
       if (searchQuery) {
         params.append('search', searchQuery);
@@ -147,9 +156,10 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
   const saveProduct = async (product: any) => {
     setLoading(true);
     try {
-      const isEditing = editingProduct !== null;
-      const url = isEditing ? `/api/products/${product.id}` : '/api/products';
-      const method = isEditing ? 'PUT' : 'POST';
+      // Determine if we are creating or updating based on product ID
+      const isUpdating = !!product.id;
+      const url = isUpdating ? `/api/products/${product.id}` : '/api/products';
+      const method = isUpdating ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
@@ -212,6 +222,13 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
     return ['All', ...Array.from(new Set(products.map(p => p.category)))];
   }, [products, searchQuery]);
 
+  const subcategories = useMemo(() => {
+    if (selectedCategory === 'All') return [];
+    const relevantProducts = products.filter(p => p.category === selectedCategory);
+    const subs = Array.from(new Set(relevantProducts.map(p => p.subcategory).filter(Boolean)));
+    return ['All', ...subs] as string[];
+  }, [products, selectedCategory]);
+
   const initialLoadRef = React.useRef(true);
 
   // Fetch products on mount and when filters change
@@ -223,7 +240,7 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
     }
     initialLoadRef.current = false;
     fetchProducts();
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, selectedSubcategory, searchQuery]);
 
   // Fetch search suggestions as user types (debounced)
   useEffect(() => {
@@ -257,7 +274,11 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
         setSearchTerm('');
       }
       setSelectedCategory(category);
+      setSelectedSubcategory('All');
     },
+    selectedSubcategory,
+    setSelectedSubcategory,
+    subcategories,
     searchTerm,
     setSearchTerm,
     searchQuery,

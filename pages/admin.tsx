@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Package, DollarSign, TrendingUp, CreditCard, Plus, Edit2, Trash2, MessageSquare, Key } from 'lucide-react';
+import { Package, DollarSign, TrendingUp, CreditCard, Plus, Edit2, Trash2, MessageSquare, Key, Eye, EyeOff } from 'lucide-react';
 import { getImageUrl } from '@/utils/imageUtils';
 import { CustomersTab } from '@/components/admin/CustomersTab';
 import { Badge } from '@/components/ui/Badge';
@@ -79,6 +79,26 @@ export default function AdminPage() {
     }
   };
 
+  const toggleArchive = async (product: any) => {
+    try {
+      // We use the saveProduct function from context which calls the API
+      // But saveProduct expects a full product object.
+      // Alternatively, we can manually call the API here for a partial update if the API supported PATCH,
+      // but our API is POST for create/update.
+      // Let's reuse saveProduct but we need to make sure we pass all fields.
+
+      // Actually, saveProduct in ProductContext handles create vs update based on ID.
+      await saveProduct({
+        ...product,
+        isArchived: !product.isArchived
+      });
+      addNotification(product.isArchived ? 'Product unarchived' : 'Product archived', 'success');
+    } catch (error) {
+      console.error(error);
+      addNotification('Failed to update archive status', 'error');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Notification Containers */}
@@ -106,41 +126,36 @@ export default function AdminPage() {
         <div className="flex gap-4 mb-8 overflow-x-auto">
           <button
             onClick={() => setAdminTab('overview')}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-              adminTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
           >
             Overview
           </button>
           <button
             onClick={() => setAdminTab('products')}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-              adminTab === 'products' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'products' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
           >
             Products
           </button>
           <button
             onClick={() => setAdminTab('orders')}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-              adminTab === 'orders' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'orders' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
           >
             Orders
           </button>
           <button
             onClick={() => setAdminTab('messages')}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-              adminTab === 'messages' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'messages' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
           >
             Messages
           </button>
           <button
             onClick={() => setAdminTab('customers')}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-              adminTab === 'customers' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'customers' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
           >
             Customers
           </button>
@@ -244,7 +259,7 @@ export default function AdminPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-700">
                     {products.map(product => (
-                      <tr key={product.id} className="hover:bg-gray-700">
+                      <tr key={product.id} className={`hover:bg-gray-700 ${(product as any).isArchived ? 'opacity-50' : ''}`}>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-gray-700 rounded flex items-center justify-center overflow-hidden">
@@ -267,12 +282,21 @@ export default function AdminPage() {
                         <td className="px-6 py-4">
                           <div className="flex gap-2">
                             <button
+                              onClick={() => toggleArchive(product)}
+                              disabled={loading}
+                              className="p-2 text-gray-400 hover:bg-gray-600 rounded disabled:opacity-50"
+                              title={(product as any).isArchived ? "Unarchive" : "Archive"}
+                            >
+                              {(product as any).isArchived ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button
                               onClick={() => {
                                 setEditingProduct(product);
                                 setShowProductModal(true);
                               }}
                               disabled={loading}
                               className="p-2 text-blue-400 hover:bg-gray-600 rounded disabled:opacity-50"
+                              title="Edit"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -286,6 +310,7 @@ export default function AdminPage() {
                               }
                               disabled={loading}
                               className="p-2 text-red-400 hover:bg-gray-600 rounded disabled:opacity-50"
+                              title="Delete"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -316,17 +341,15 @@ export default function AdminPage() {
                 <div className="flex gap-2 mb-6">
                   <button
                     onClick={() => setOrdersSubTab('current')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      ordersSubTab === 'current' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${ordersSubTab === 'current' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
                   >
                     Current Orders
                   </button>
                   <button
                     onClick={() => setOrdersSubTab('past')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      ordersSubTab === 'past' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${ordersSubTab === 'past' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
                   >
                     Past Orders
                   </button>
@@ -361,13 +384,12 @@ export default function AdminPage() {
                                     <select
                                       value={order.status}
                                       onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                      className={`px-3 py-1 rounded text-sm font-medium border-0 ${
-                                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                      className={`px-3 py-1 rounded text-sm font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
                                         order.status === 'shipping' ? 'bg-purple-100 text-purple-800' :
-                                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                      }`}
+                                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                            order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                              'bg-yellow-100 text-yellow-800'
+                                        }`}
                                     >
                                       <option value="pending">Pending</option>
                                       <option value="processing">Processing</option>
@@ -453,13 +475,12 @@ export default function AdminPage() {
                                     <select
                                       value={order.status}
                                       onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                      className={`px-3 py-1 rounded text-sm font-medium border-0 ${
-                                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                      className={`px-3 py-1 rounded text-sm font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
                                         order.status === 'shipping' ? 'bg-purple-100 text-purple-800' :
-                                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                      }`}
+                                          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                            order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                              'bg-yellow-100 text-yellow-800'
+                                        }`}
                                     >
                                       <option value="pending">Pending</option>
                                       <option value="processing">Processing</option>
@@ -544,17 +565,15 @@ export default function AdminPage() {
             <div className="flex gap-2 mb-6">
               <button
                 onClick={() => setMessagesSubTab('regular')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  messagesSubTab === 'regular' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${messagesSubTab === 'regular' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  }`}
               >
                 Regular Messages
               </button>
               <button
                 onClick={() => setMessagesSubTab('password-resets')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  messagesSubTab === 'password-resets' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                }`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${messagesSubTab === 'password-resets' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                  }`}
               >
                 Password Reset Requests
               </button>
