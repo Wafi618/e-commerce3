@@ -246,80 +246,82 @@ export default function AdminPage() {
 
             {!loading && products.length > 0 && (
               <div className="bg-gray-800 rounded-lg shadow overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-700 border-b border-gray-600">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Product</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Category</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Subcategory</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Price</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Stock</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-white">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {products.map(product => (
-                      <tr key={product.id} className={`hover:bg-gray-700 ${(product as any).isArchived ? 'opacity-50' : ''}`}>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gray-700 rounded flex items-center justify-center overflow-hidden">
-                              <img
-                                src={getImageUrl(product.image) || 'https://via.placeholder.com/40?text=No+Image'}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.src = 'https://via.placeholder.com/40?text=No+Image';
-                                }}
-                              />
-                            </div>
-                            <span className="font-medium text-white">{product.name}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-gray-300">{product.category}</td>
-                        <td className="px-6 py-4 text-gray-300">{(product as any).subcategory || '-'}</td>
-                        <td className="px-6 py-4 font-semibold text-white">৳{product.price}</td>
-                        <td className="px-6 py-4 text-gray-300">{product.stock}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => toggleArchive(product)}
-                              disabled={loading}
-                              className="p-2 text-gray-400 hover:bg-gray-600 rounded disabled:opacity-50"
-                              title={(product as any).isArchived ? "Unarchive" : "Archive"}
-                            >
-                              {(product as any).isArchived ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingProduct(product);
-                                setShowProductModal(true);
-                              }}
-                              disabled={loading}
-                              className="p-2 text-blue-400 hover:bg-gray-600 rounded disabled:opacity-50"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                showConfirmation(
-                                  'Delete Product',
-                                  `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
-                                  () => deleteProduct(product.id)
-                                )
-                              }
-                              disabled={loading}
-                              className="p-2 text-red-400 hover:bg-gray-600 rounded disabled:opacity-50"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-700 border-b border-gray-600">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-white whitespace-nowrap">Product</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-white whitespace-nowrap">Category</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-white whitespace-nowrap">Subcategory</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-white whitespace-nowrap">Price</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-white whitespace-nowrap">Stock</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-white whitespace-nowrap">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {products.map(product => (
+                        <tr key={product.id} className={`hover:bg-gray-700 ${(product as any).isArchived ? 'opacity-50' : ''}`}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gray-700 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <img
+                                  src={getImageUrl(product.image) || 'https://via.placeholder.com/40?text=No+Image'}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'https://via.placeholder.com/40?text=No+Image';
+                                  }}
+                                />
+                              </div>
+                              <span className="font-medium text-white">{product.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-gray-300 whitespace-nowrap">{product.category}</td>
+                          <td className="px-6 py-4 text-gray-300 whitespace-nowrap">{(product as any).subcategory || '-'}</td>
+                          <td className="px-6 py-4 font-semibold text-white whitespace-nowrap">৳{product.price}</td>
+                          <td className="px-6 py-4 text-gray-300 whitespace-nowrap">{product.stock}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => toggleArchive(product)}
+                                disabled={loading}
+                                className="p-2 text-gray-400 hover:bg-gray-600 rounded disabled:opacity-50"
+                                title={(product as any).isArchived ? "Unarchive" : "Archive"}
+                              >
+                                {(product as any).isArchived ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingProduct(product);
+                                  setShowProductModal(true);
+                                }}
+                                disabled={loading}
+                                className="p-2 text-blue-400 hover:bg-gray-600 rounded disabled:opacity-50"
+                                title="Edit"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  showConfirmation(
+                                    'Delete Product',
+                                    `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+                                    () => deleteProduct(product.id)
+                                  )
+                                }
+                                disabled={loading}
+                                className="p-2 text-red-400 hover:bg-gray-600 rounded disabled:opacity-50"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
