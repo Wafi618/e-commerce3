@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import Head from 'next/head';
 import { Search, Package } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { getImageUrl } from '@/utils/imageUtils';
@@ -66,6 +67,13 @@ export default function HomePage() {
 
   return (
     <Layout>
+      <Head>
+        <title>Star Accessories | Premium Fashion & Accessories in Bangladesh</title>
+        <meta name="description" content="Shop the best collection of fashion accessories, gadgets, and lifestyle products in Bangladesh. Premium quality, fast delivery, and excellent customer service." />
+        <meta property="og:title" content="Star Accessories | Premium Fashion & Accessories" />
+        <meta property="og:description" content="Shop the best collection of fashion accessories, gadgets, and lifestyle products in Bangladesh." />
+        <meta property="og:type" content="website" />
+      </Head>
       <div className="relative">
         <ParticlesBackground darkMode={darkMode} />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

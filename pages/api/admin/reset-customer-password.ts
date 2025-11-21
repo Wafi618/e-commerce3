@@ -1,24 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
-import { parse } from 'cookie';
 import bcrypt from 'bcryptjs';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-const getUserFromToken = (req: NextApiRequest) => {
-  const cookies = parse(req.headers.cookie || '');
-  const token = cookies['auth-token'];
-
-  if (!token) return null;
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    return decoded.userId;
-  } catch (error) {
-    return null;
-  }
-};
+import { requireAdmin } from '@/lib/serverAuth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -32,29 +15,10 @@ export default async function handler(
     });
   }
 
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   try {
-    const adminId = getUserFromToken(req);
-
-    if (!adminId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Authentication required',
-      });
-    }
-
-    // Check if user is admin
-    const admin = await prisma.user.findUnique({
-      where: { id: adminId },
-      select: { role: true },
-    });
-
-    if (admin?.role !== 'ADMIN') {
-      return res.status(403).json({
-        success: false,
-        error: 'Admin access required',
-      });
-    }
-
     const { customerId, newPassword } = req.body;
 
     // Validation

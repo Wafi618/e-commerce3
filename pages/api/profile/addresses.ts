@@ -1,24 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { addressSchema } from '@/lib/schemas';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+import { requireUser } from '@/lib/serverAuth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Verify Token
-    const token = req.cookies['auth-token'];
-    if (!token) {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
+    const user = await requireUser(req, res);
+    if (!user) return;
 
-    let userId: string;
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        userId = decoded.userId;
-    } catch (error) {
-        return res.status(401).json({ success: false, error: 'Invalid token' });
-    }
+    const userId = user.userId;
 
     try {
         if (req.method === 'GET') {

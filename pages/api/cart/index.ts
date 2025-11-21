@@ -1,39 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
-import { parse } from 'cookie';
 import { prisma } from '@/lib/prisma';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-// Get user from token
-const getUserFromToken = (req: NextApiRequest) => {
-  const cookies = parse(req.headers.cookie || '');
-  const token = cookies['auth-token'];
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    return decoded.userId;
-  } catch (error) {
-    return null;
-  }
-};
+import { requireUser } from '@/lib/serverAuth';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const userId = getUserFromToken(req);
+  const user = await requireUser(req, res);
+  if (!user) return;
 
-  if (!userId) {
-    return res.status(401).json({
-      success: false,
-      error: 'Authentication required',
-    });
-  }
+  const userId = user.userId;
 
   try {
     if (req.method === 'GET') {

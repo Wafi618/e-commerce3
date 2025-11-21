@@ -2,11 +2,18 @@ import type { AppProps } from 'next/app';
 import { AppProvider } from '@/contexts';
 import '../styles/globals.css';
 
-function MyApp({ Component, pageProps }: AppProps) {
+import { SessionProvider } from 'next-auth/react';
+
+import GoogleOneTap from '@/components/GoogleOneTap';
+
+function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   return (
-    <AppProvider initialData={pageProps}>
-      <Component {...pageProps} />
-    </AppProvider>
+    <SessionProvider session={session}>
+      <AppProvider initialData={pageProps}>
+        <Component {...pageProps} />
+        <GoogleOneTap />
+      </AppProvider>
+    </SessionProvider>
   );
 }
 

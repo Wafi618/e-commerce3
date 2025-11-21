@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Disallow private and irrelevant pages to save crawl budget
+Disallow: /admin
+Disallow: /cart
+Disallow: /profile
+Disallow: /my-orders
+Disallow: /api/*
+Allow: /api/og
+
+Sitemap: https://starxessories.cc/sitemap.xml

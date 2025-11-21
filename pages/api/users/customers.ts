@@ -1,23 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
-import { parse } from 'cookie';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-const getUserFromToken = (req: NextApiRequest) => {
-  const cookies = parse(req.headers.cookie || '');
-  const token = cookies['auth-token'];
-
-  if (!token) return null;
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    return decoded.userId;
-  } catch (error) {
-    return null;
-  }
-};
+import { getServerSession } from 'next-auth/next';
+import { getAuthOptions } from '../auth/[...nextauth]';
 
 export default async function handler(
   req: NextApiRequest,
@@ -31,7 +15,8 @@ export default async function handler(
     });
   }
 
-  const userId = getUserFromToken(req);
+  const session = await getServerSession(req, res, getAuthOptions(req, res));
+  const userId = session?.user?.id;
 
   if (!userId) {
     return res.status(401).json({
@@ -85,5 +70,6 @@ export default async function handler(
       success: false,
       error: 'Failed to fetch customers',
       message: error instanceof Error ? error.message : 'Unknown error',
-    });  }
+    });
+  }
 }

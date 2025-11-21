@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+import { requireUser } from '@/lib/serverAuth';
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,24 +14,10 @@ export default async function handler(
     });
   }
 
+  const user = await requireUser(req, res);
+  if (!user) return;
+
   try {
-    // Get token from cookie or Authorization header
-    const token = req.cookies['auth-token'] || req.headers.authorization?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated',
-      });
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as {
-      userId: string;
-      email: string;
-      role: string;
-    };
-
     const { darkMode } = req.body;
 
     if (typeof darkMode !== 'boolean') {
@@ -45,7 +29,7 @@ export default async function handler(
 
     // Update user's dark mode preference
     const updatedUser = await prisma.user.update({
-      where: { id: decoded.userId },
+      where: { id: user.userId },
       data: { darkMode },
       select: {
         id: true,
@@ -60,13 +44,6 @@ export default async function handler(
     });
   } catch (error) {
     console.error('Update Theme Error:', error);
-
-    if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token',
-      });
-    }
 
     return res.status(500).json({
       success: false,

@@ -51,9 +51,13 @@ export default async function handler(
     if (method === 'security-question') {
       // Security question: last 4 digits of phone number
       if (!user.phone) {
+        const errorMsg = !user.password
+          ? 'This account uses Google Sign-In. Please log in with Google.'
+          : 'No phone number on file. Please use another method or contact admin.';
+
         return res.status(400).json({
           success: false,
-          error: 'No phone number on file. Please use another method or contact admin.',
+          error: errorMsg,
         });
       }
 
@@ -62,9 +66,13 @@ export default async function handler(
     } else if (method === 'pin') {
       // PIN method
       if (!user.resetPin) {
+        const errorMsg = !user.password
+          ? 'This account uses Google Sign-In. Please log in with Google.'
+          : 'No PIN set. Please use another method or contact admin.';
+
         return res.status(400).json({
           success: false,
-          error: 'No PIN set. Please use another method or contact admin.',
+          error: errorMsg,
         });
       }
 
@@ -114,5 +122,6 @@ export default async function handler(
       success: false,
       error: 'Failed to reset password',
       message: error instanceof Error ? error.message : 'Unknown error',
-    });  }
+    });
+  }
 }

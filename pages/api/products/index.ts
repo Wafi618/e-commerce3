@@ -1,9 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { productSchema } from '@/lib/schemas';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+import { getServerSession } from 'next-auth/next';
+import { getAuthOptions } from '../auth/[...nextauth]';
 
 
 export default async function handler(
@@ -36,19 +35,8 @@ export default async function handler(
       }
 
       // Check if user is admin
-      const token = req.cookies['auth-token'];
-      let isAdmin = false;
-
-      if (token) {
-        try {
-          const decoded = jwt.verify(token, JWT_SECRET) as any;
-          if (decoded.role === 'ADMIN') {
-            isAdmin = true;
-          }
-        } catch (e) {
-          // Invalid token, treat as guest
-        }
-      }
+      const session = await getServerSession(req, res, getAuthOptions(req, res));
+      const isAdmin = session?.user?.role === 'ADMIN';
 
       // Filter out archived products for non-admins
       // Filter out archived products for non-admins

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import { useNotification } from './NotificationContext';
 
 /**
@@ -25,6 +26,7 @@ interface User {
 interface AuthContextValue {
   user: User | null;
   setUser: (user: User | null) => void;
+  updateSession: () => Promise<any>;
   showAuthModal: boolean;
   setShowAuthModal: (show: boolean) => void;
   authMode: 'login' | 'register';
@@ -50,81 +52,50 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
  * Provides authentication state and functions to manage user login/logout
  */
 export function AuthProvider({ children }: AuthProviderProps) {
+  const { data: session, status, update } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const { addNotification } = useNotification();
 
-  /**
-   * Checks if user is authenticated
-   * Called on mount to restore user session
-   */
-  const checkAuth = async () => {
-    try {
-      const response = await fetch('/api/auth/me');
-      const data = await response.json();
-      if (data.success) {
-        setUser(data.data);
-        return data.data;
-      }
-      return null;
-    } catch (err) {
-      console.log('Not authenticated');
-      return null;
+  // Sync session with local user state
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      setUser(session.user as User);
+    } else if (status === 'unauthenticated') {
+      setUser(null);
     }
+  }, [session, status]);
+
+  const checkAuth = async () => {
+    // NextAuth handles this automatically via useSession
+    return session?.user || null;
   };
 
-  /**
-   * Handles user login
-   * @param email - User email
-   * @param password - User password
-   */
   const handleLogin = async (email: string, password: string) => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        setUser(data.data);
-        setShowAuthModal(false);
-        if (data.data.restrictedAccess) {
-          addNotification(
-            'Login successful! Note: Your account has restricted access. Please add a phone number or PIN to unlock all features.',
-            'warning'
-          );
-        } else {
-          addNotification('Login successful!', 'success');
-        }
+      if (result?.error) {
+        addNotification(result.error, 'error');
       } else {
-        addNotification(data.error || 'Login failed', 'error');
+        setShowAuthModal(false);
+        addNotification('Login successful!', 'success');
       }
     } catch (err) {
-      addNotification('Network error. Failed to login.', 'error');
-      console.error('Login error:', err);
+      addNotification('Login failed', 'error');
     }
   };
 
-  /**
-   * Handles user registration
-   * @param email - User email
-   * @param password - User password
-   * @param name - User name
-   * @param phone - User phone number
-   */
   const handleRegister = async (email: string, password: string, name: string, phone: string) => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name, phone }),
       });
 
@@ -136,33 +107,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         addNotification(data.error || 'Registration failed', 'error');
       }
     } catch (err) {
-      addNotification('Network error. Failed to register.', 'error');
-      console.error('Register error:', err);
+      addNotification('Registration failed', 'error');
     }
   };
 
-  /**
-   * Handles user logout
-   */
   const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      setUser(null);
-      localStorage.removeItem('shopping_cart');
-      addNotification('Logged out successfully', 'info');
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
+    await signOut({ redirect: false });
+    setUser(null);
+    localStorage.removeItem('shopping_cart');
+    addNotification('Logged out successfully', 'info');
   };
-
-  // Check authentication on mount
-  useEffect(() => {
-    checkAuth();
-  }, []);
 
   const value: AuthContextValue = {
     user,
     setUser,
+    updateSession: update,
     showAuthModal,
     setShowAuthModal,
     authMode,

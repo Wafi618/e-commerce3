@@ -191,7 +191,7 @@ export const CustomersTab: React.FC = () => {
           <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Try adjusting your search filters</p>
         </div>
       ) : (
-        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow overflow-hidden`}>
+        <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow overflow-hidden overflow-x-auto`}>
           <table className="w-full">
             <thead className={`${darkMode ? 'bg-gray-700 border-b border-gray-600' : 'bg-gray-50 border-b'}`}>
               <tr>

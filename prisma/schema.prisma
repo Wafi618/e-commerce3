@@ -1,110 +1,132 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "windows"]
 }
 
 datasource db {
-  provider = "postgresql" // or "mysql", "sqlite", "sqlserver"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  name      String?
-  password  String
-  role      Role       @default(CUSTOMER)
-  phone     String?
-  city      String?
-  country   String?    @default("Bangladesh")
-  address   String?
-  house     String?
-  floor     String?
-  resetPin  String?    // 3-digit PIN for password reset
-  failedResetAttempts Int @default(0)
-  restrictedAccess Boolean @default(false) // true if user has no phone or PIN
-  darkMode  Boolean    @default(false) // user's dark mode preference
-  orders    Order[]
-  cartItems CartItem[]
-  addresses Address[]
-  sentMessages     Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id                  String     @id @default(cuid())
+  email               String     @unique
+  name                String?
+  password            String?
+  role                Role       @default(CUSTOMER)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  address             String?
+  city                String?
+  country             String?    @default("Bangladesh")
+  failedResetAttempts Int        @default(0)
+  floor               String?
+  house               String?
+  phone               String?
+  resetPin            String?
+  restrictedAccess    Boolean    @default(false)
+  darkMode            Boolean    @default(false)
+  image               String?
+  emailVerified       DateTime?
+  accounts            Account[]
+  addresses           Address[]
+  cartItems           CartItem[]
+  receivedMessages    Message[]  @relation("ReceivedMessages")
+  sentMessages        Message[]  @relation("SentMessages")
+  orders              Order[]
+  sessions            Session[]
 }
 
-enum Role {
-  ADMIN
-  CUSTOMER
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Product {
   id          Int         @id @default(autoincrement())
   name        String      @unique
-  price       Decimal     @db.Decimal(10, 2) // Using Decimal for precise money calculations
-  image       String      // image URL
-  images      String[]    @default([]) // multiple images
+  price       Decimal     @db.Decimal(10, 2)
+  image       String
   stock       Int
   category    String
-  subcategory String?
   description String?
-  isArchived  Boolean     @default(false)
-  orderItems  OrderItem[]
-  cartItems   CartItem[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  images      String[]    @default([])
+  subcategory String?
+  isArchived  Boolean     @default(false)
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
 
   @@index([category])
 }
 
 model Order {
-  id         Int         @id @default(autoincrement())
-  userId     String?
-  user       User?       @relation(fields: [userId], references: [id])
-  customer   String      // customer name
-  email      String
-  phone      String?
-  city       String?
-  country    String?
-  address    String?     // road address
-  house      String?     // house/building number
-  floor      String?     // floor/unit number
-  notes      String?     // additional delivery notes
-  total      Decimal     @db.Decimal(10, 2) // Using Decimal for precise money calculations
-  status     OrderStatus @default(PENDING)
-  paymentMethod String? // To track 'MANUAL_BKASH' vs 'AUTO_BKASH'
-  paymentPhoneNumber String? // User's bKash number for manual payment
-  paymentTrxId String? // User's provided TrxID for manual payment
-  orderItems OrderItem[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id                 Int         @id @default(autoincrement())
+  userId             String?
+  customer           String
+  email              String
+  total              Decimal     @db.Decimal(10, 2)
+  status             OrderStatus @default(PENDING)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  address            String?
+  city               String?
+  country            String?
+  floor              String?
+  house              String?
+  notes              String?
+  phone              String?
+  paymentMethod      String?
+  paymentPhoneNumber String?
+  paymentTrxId       String?
+  user               User?       @relation(fields: [userId], references: [id])
+  orderItems         OrderItem[]
 
   @@index([status])
   @@index([email])
 }
 
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPING
-  COMPLETED
-  CANCELLED
-}
-
 model Message {
-  id         Int      @id @default(autoincrement())
-  senderId   String
-  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId String
-  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
-  subject    String?
-  message    String
-  isRead     Boolean  @default(false)
-  isPasswordReset Boolean @default(false) // true if message is a password reset request
-  createdAt  DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  senderId        String
+  receiverId      String
+  subject         String?
+  message         String
+  isRead          Boolean  @default(false)
+  isPasswordReset Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  receiver        User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender          User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([senderId])
   @@index([receiverId])
@@ -114,12 +136,12 @@ model Message {
 model OrderItem {
   id        Int      @id @default(autoincrement())
   orderId   Int
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId Int
-  product   Product  @relation(fields: [productId], references: [id])
   quantity  Int
-  price     Decimal  @db.Decimal(10, 2) // Using Decimal for precise money calculations (price at time of order)
+  price     Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
@@ -128,30 +150,42 @@ model OrderItem {
 model CartItem {
   id        Int      @id @default(autoincrement())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId Int
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@index([userId])
 }
 
 model Address {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label     String   // e.g. "Home", "Office"
+  label     String
   phone     String
   city      String
   country   String
   address   String
   house     String?
   floor     String?
-  isDefault Boolean  @default(false)
+  isDefault Boolean @default(false)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  SHIPPING
+}

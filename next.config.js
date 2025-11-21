@@ -1,19 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  images: {
-    domains: [
-      'via.placeholder.com',
-      'images.unsplash.com',
-      'plus.unsplash.com',
-      'res.cloudinary.com',
-      'lh3.googleusercontent.com',
-      'iili.io',
-      'xcdn.next.co.uk',
-      'www.shutterstock.com',
-      'static.vecteezy.com',
-    ],
-  },
+    reactStrictMode: true,
+    images: {
+        remotePatterns: [
+            { protocol: 'https', hostname: 'via.placeholder.com' },
+            { protocol: 'https', hostname: 'images.unsplash.com' },
+            { protocol: 'https', hostname: 'plus.unsplash.com' },
+            { protocol: 'https', hostname: 'res.cloudinary.com' },
+            { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+            { protocol: 'https', hostname: 'iili.io' },
+            { protocol: 'https', hostname: 'xcdn.next.co.uk' },
+            { protocol: 'https', hostname: 'www.shutterstock.com' },
+            { protocol: 'https', hostname: 'static.vecteezy.com' },
+        ],
+    },
 };
 
 module.exports = nextConfig;

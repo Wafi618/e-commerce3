@@ -18,7 +18,7 @@ interface Address {
 }
 
 export default function ProfilePage() {
-  const { user, setUser } = useAuth();
+  const { user, setUser, updateSession } = useAuth();
   const { darkMode } = useTheme();
   const { addNotification } = useNotification();
   const [profileData, setProfileData] = useState({
@@ -91,6 +91,7 @@ export default function ProfilePage() {
 
       if (data.success) {
         setUser(data.data);
+        await updateSession(); // Refresh session from server to ensure consistency
         addNotification('Profile updated successfully!', 'success');
       } else {
         addNotification(data.error || 'Failed to update profile', 'error');
@@ -242,6 +243,12 @@ export default function ProfilePage() {
           </form>
         </div>
 
+        {/* Security Settings Section */}
+        <div className={`mt-8 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
+          <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-6`}>Security Settings</h2>
+          <SecuritySettings darkMode={darkMode} addNotification={addNotification} />
+        </div>
+
         {/* Saved Addresses Section */}
         <div className={`mt-8 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
           <div className="flex justify-between items-center mb-6">
@@ -368,3 +375,70 @@ export default function ProfilePage() {
     </Layout>
   );
 }
+
+const SecuritySettings: React.FC<{ darkMode: boolean; addNotification: (msg: string, type: 'success' | 'error') => void }> = ({ darkMode, addNotification }) => {
+  const [pin, setPin] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSetPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{3}$/.test(pin)) {
+      addNotification('PIN must be exactly 3 digits', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/profile/set-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification('PIN set successfully', 'success');
+        setPin('');
+      } else {
+        addNotification(data.error || 'Failed to set PIN', 'error');
+      }
+    } catch (error) {
+      addNotification('Network error', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSetPin} className="space-y-4">
+      <div>
+        <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-1`}>
+          Reset PIN (3 Digits)
+        </label>
+        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
+          This PIN can be used to reset your password if you forget it.
+        </p>
+        <div className="flex gap-4">
+          <input
+            type="text"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 3))}
+            className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${darkMode
+                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+                : 'bg-white border-gray-300 text-gray-900'
+              }`}
+            placeholder="123"
+            maxLength={3}
+            pattern="\d{3}"
+          />
+          <button
+            type="submit"
+            disabled={loading || pin.length !== 3}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            {loading ? 'Saving...' : 'Set PIN'}
+          </button>
+        </div>
+      </div>
+    </form>
+  );
+};

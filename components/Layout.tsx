@@ -10,6 +10,7 @@ import { SearchModal } from './modals/SearchModal';
 import { AddressModal } from './modals/AddressModal';
 import { OrderDetailsModal } from './modals/OrderDetailsModal';
 import { MessageModal } from './modals/MessageModal';
+import { PhoneVerificationModal } from './modals/PhoneVerificationModal';
 
 interface LayoutProps {
   children: ReactNode;
@@ -42,6 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
       {/* Notification Containers */}
       <ToastContainer />
       <ConfirmModal />
+      <PhoneVerificationModal />
 
       {/* Navigation */}
       <nav className={`${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm sticky top-0 z-20`}>
@@ -245,8 +247,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${darkMode
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-green-500 text-white hover:bg-green-600'
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-green-500 text-white hover:bg-green-600'
                   }`}
               >
                 <MessageCircle className="w-5 h-5" />

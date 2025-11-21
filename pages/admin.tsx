@@ -52,7 +52,7 @@ export default function AdminPage() {
   const stats = {
     totalRevenue: orders
       .filter(o => o.status === 'shipping' || o.status === 'completed')
-      .reduce((sum, o) => sum + o.total, 0),
+      .reduce((sum, o) => sum + Number(o.total), 0),
     totalOrders: orders.length,
     totalProducts: products.length,
     pendingOrders: orders.filter(o => o.status === 'pending').length,
@@ -473,7 +473,7 @@ export default function AdminPage() {
                                 </div>
                                 <div className="text-right">
                                   <p className="text-2xl font-bold text-white">৳{Number(order.total).toFixed(2)}</p>
-                                  <div className="flex gap-2 mt-2 justify-end">
+                                  <div className="flex gap-2 mt-2 justify-end flex-wrap">
                                     <select
                                       value={order.status}
                                       onChange={(e) => updateOrderStatus(order.id, e.target.value)}

@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './[...nextauth]';
 
 export interface AuthenticatedRequest extends NextApiRequest {
   user?: {
@@ -12,43 +11,33 @@ export interface AuthenticatedRequest extends NextApiRequest {
 }
 
 /**
- * Middleware to verify JWT token and attach user to request
+ * Middleware to verify session and attach user to request
  */
 export function withAuth(
   handler: (req: AuthenticatedRequest, res: NextApiResponse) => Promise<void>
 ) {
   return async (req: AuthenticatedRequest, res: NextApiResponse) => {
     try {
-      // Get token from cookie or Authorization header
-      const token = req.cookies['auth-token'] || req.headers.authorization?.replace('Bearer ', '');
+      const session = await getServerSession(req, res, authOptions);
 
-      if (!token) {
+      if (!session || !session.user) {
         return res.status(401).json({
           success: false,
           error: 'Authentication required',
         });
       }
 
-      // Verify token
-      const decoded = jwt.verify(token, JWT_SECRET) as {
-        userId: string;
-        email: string;
-        role: string;
+      // Attach user to request (mapping id to userId for compatibility)
+      req.user = {
+        userId: session.user.id,
+        email: session.user.email || '',
+        role: session.user.role || 'CUSTOMER',
       };
-
-      // Attach user to request
-      req.user = decoded;
 
       // Call the actual handler
       return handler(req, res);
     } catch (error) {
-      if (error instanceof jwt.JsonWebTokenError) {
-        return res.status(401).json({
-          success: false,
-          error: 'Invalid or expired token',
-        });
-      }
-
+      console.error('Auth Middleware Error:', error);
       return res.status(500).json({
         success: false,
         error: 'Authentication failed',
@@ -83,15 +72,14 @@ export function withOptionalAuth(
 ) {
   return async (req: AuthenticatedRequest, res: NextApiResponse) => {
     try {
-      const token = req.cookies['auth-token'] || req.headers.authorization?.replace('Bearer ', '');
+      const session = await getServerSession(req, res, authOptions);
 
-      if (token) {
-        const decoded = jwt.verify(token, JWT_SECRET) as {
-          userId: string;
-          email: string;
-          role: string;
+      if (session && session.user) {
+        req.user = {
+          userId: session.user.id,
+          email: session.user.email || '',
+          role: session.user.role || 'CUSTOMER',
         };
-        req.user = decoded;
       }
     } catch (error) {
       // Silently fail for optional auth

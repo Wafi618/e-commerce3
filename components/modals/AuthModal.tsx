@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts';
 import { useNotification } from '@/contexts/NotificationContext';
+import { signIn } from 'next-auth/react';
+import { Chrome } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   // Consume contexts directly
@@ -17,6 +19,7 @@ export const AuthModal: React.FC = () => {
     name: '',
     phone: '',
   });
+  const [staySignedIn, setStaySignedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
@@ -26,6 +29,11 @@ export const AuthModal: React.FC = () => {
 
     try {
       if (authMode === 'login') {
+        if (staySignedIn) {
+          document.cookie = "remember-me=true; path=/; max-age=315360000"; // 10 years
+        } else {
+          document.cookie = "remember-me=false; path=/; max-age=0";
+        }
         await handleLogin(formData.email, formData.password);
       } else {
         await handleRegister(formData.email, formData.password, formData.name, formData.phone);
@@ -41,6 +49,46 @@ export const AuthModal: React.FC = () => {
         <h3 className="text-xl font-bold text-gray-900 mb-4">
           {authMode === 'login' ? 'Login' : 'Create Account'}
         </h3>
+
+        {authMode === 'login' && (
+          <div className="mb-4">
+            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={staySignedIn}
+                onChange={(e) => setStaySignedIn(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Stay signed in
+            </label>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            if (staySignedIn) {
+              document.cookie = "remember-me=true; path=/; max-age=315360000"; // 10 years
+            } else {
+              document.cookie = "remember-me=false; path=/; max-age=0";
+            }
+            signIn('google');
+          }}
+          className="w-full mb-4 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2 transition-colors"
+        >
+          <Chrome className="w-5 h-5 text-blue-600" />
+          <span className="text-gray-700 font-medium">Sign in with Google</span>
+        </button>
+
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {authMode === 'register' && (
             <>

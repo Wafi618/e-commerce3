@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Head from 'next/head';
+import { GetServerSideProps } from 'next';
 import { ArrowLeft, ShoppingCart, Package, AlertCircle, X, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { getImageUrl } from '@/utils/imageUtils';
@@ -10,6 +12,7 @@ import { useCart, useTheme } from '@/contexts';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import WhatsAppButton from '@/components/ui/WhatsAppButton';
+import { prisma } from '@/lib/prisma';
 
 interface Product {
   id: number;
@@ -21,6 +24,7 @@ interface Product {
   category: string;
   subcategory?: string;
   description?: string;
+  isArchived?: boolean;
 }
 
 interface ProductDetailData {
@@ -28,47 +32,28 @@ interface ProductDetailData {
   similarProducts: Product[];
 }
 
-export default function ProductDetailPage() {
+interface ProductPageProps {
+  initialData: ProductDetailData | null;
+  error?: string;
+}
+
+export default function ProductDetailPage({ initialData, error }: ProductPageProps) {
   const router = useRouter();
-  const { id } = router.query;
   const { addToCart } = useCart();
   const { darkMode } = useTheme();
 
-  const [data, setData] = useState<ProductDetailData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [selectedImage, setSelectedImage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [showLightbox, setShowLightbox] = useState(false);
 
+  // Initialize state from props
   useEffect(() => {
-    if (!id) return;
+    if (initialData?.product) {
+      setSelectedImage(initialData.product.image);
+    }
+  }, [initialData]);
 
-    const fetchProductDetails = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/products/${id}`);
-        const result = await response.json();
-
-        if (result.success) {
-          setData(result.data);
-          // Set initial selected image to the main image
-          setSelectedImage(result.data.product.image);
-        } else {
-          setError(result.error || 'Failed to load product');
-        }
-      } catch (err) {
-        console.error('Failed to fetch product:', err);
-        setError('Failed to load product details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProductDetails();
-  }, [id]);
-
-  if (loading) {
+  if (router.isFallback) {
     return (
       <Layout>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -78,9 +63,13 @@ export default function ProductDetailPage() {
     );
   }
 
-  if (error || !data) {
+  if (error || !initialData) {
     return (
       <Layout>
+        <Head>
+          <title>Product Not Found | Star Accessories</title>
+          <meta name="robots" content="noindex" />
+        </Head>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className={`${darkMode ? 'bg-red-900/50 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'} border px-6 py-4 rounded-lg flex items-center gap-3`}>
             <AlertCircle className="w-5 h-5" />
@@ -98,7 +87,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const { product, similarProducts } = data;
+  const { product, similarProducts } = initialData;
   const allImages = [product.image, ...(product.images || [])].filter(Boolean);
 
   const handleAddToCart = () => {
@@ -121,8 +110,39 @@ export default function ProductDetailPage() {
     setSelectedImage(allImages[prevIndex]);
   };
 
+  // JSON-LD Structured Data
+  const productSchema = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": product.name,
+    "image": allImages.map(img => getImageUrl(img)),
+    "description": product.description || `Buy ${product.name} at Star Accessories.`,
+    "sku": product.id.toString(),
+    "offers": {
+      "@type": "Offer",
+      "url": `https://starxessories.cc/product/${product.id}`, // Replace with actual domain
+      "priceCurrency": "BDT",
+      "price": product.price,
+      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "itemCondition": "https://schema.org/NewCondition"
+    }
+  };
+
   return (
     <Layout>
+      <Head>
+        <title>{`${product.name} | Star Accessories`}</title>
+        <meta name="description" content={product.description?.slice(0, 160) || `Buy ${product.name} - Best price in Bangladesh.`} />
+        <meta property="og:title" content={product.name} />
+        <meta property="og:description" content={product.description?.slice(0, 160)} />
+        <meta property="og:image" content={getImageUrl(product.image)} />
+        <meta property="og:type" content="product" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+        />
+      </Head>
+
       <div className="relative">
         <ParticlesBackground darkMode={darkMode} />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -139,7 +159,6 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             {/* Image Gallery */}
             <div>
-              {/* Main Image */}
               {/* Main Image */}
               <div
                 className={`${darkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-lg overflow-hidden mb-4 relative group cursor-pointer`}
@@ -169,10 +188,10 @@ export default function ProductDetailPage() {
                       key={idx}
                       onClick={() => setSelectedImage(img)}
                       className={`${darkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-lg overflow-hidden border-2 ${selectedImage === img
-                          ? 'border-blue-600'
-                          : darkMode
-                            ? 'border-gray-700 hover:border-gray-600'
-                            : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-blue-600'
+                        : darkMode
+                          ? 'border-gray-700 hover:border-gray-600'
+                          : 'border-gray-200 hover:border-gray-300'
                         } transition-colors`}
                     >
                       <img
@@ -243,8 +262,8 @@ export default function ProductDetailPage() {
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
                     className={`px-4 py-2 rounded-lg ${darkMode
-                        ? 'bg-gray-700 text-white hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600'
-                        : 'bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400'
+                      ? 'bg-gray-700 text-white hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400'
                       } transition-colors`}
                   >
                     -
@@ -256,8 +275,8 @@ export default function ProductDetailPage() {
                     onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
                     disabled={quantity >= product.stock}
                     className={`px-4 py-2 rounded-lg ${darkMode
-                        ? 'bg-gray-700 text-white hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600'
-                        : 'bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400'
+                      ? 'bg-gray-700 text-white hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600'
+                      : 'bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400'
                       } transition-colors`}
                   >
                     +
@@ -271,10 +290,10 @@ export default function ProductDetailPage() {
                   onClick={handleAddToCart}
                   disabled={product.stock <= 0}
                   className={`w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${product.stock <= 0
-                      ? darkMode
-                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? darkMode
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
                 >
                   <ShoppingCart className="w-5 h-5" />
@@ -443,3 +462,60 @@ export default function ProductDetailPage() {
     </Layout>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const { id } = context.params as { id: string };
+  const productId = parseInt(id);
+
+  if (isNaN(productId)) {
+    return {
+      notFound: true,
+    };
+  }
+
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      return {
+        notFound: true,
+      };
+    }
+
+    // Fetch similar products
+    const similarProducts = await prisma.product.findMany({
+      where: {
+        category: product.category,
+        id: { not: productId },
+      },
+      take: 8,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Serialize dates and decimals for JSON
+    const serialize = (data: any): any => {
+      return JSON.parse(JSON.stringify(data));
+    };
+
+    return {
+      props: {
+        initialData: {
+          product: serialize(product),
+          similarProducts: serialize(similarProducts),
+        },
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    return {
+      props: {
+        initialData: null,
+        error: 'Failed to load product',
+      },
+    };
+  }
+};

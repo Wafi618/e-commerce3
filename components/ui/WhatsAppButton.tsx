@@ -2,9 +2,15 @@ import React from 'react';
 import { MessageCircle } from 'lucide-react';
 
 const WhatsAppButton = ({ product, darkMode }) => {
+  const [currentUrl, setCurrentUrl] = React.useState('');
+
+  React.useEffect(() => {
+    setCurrentUrl(window.location.href);
+  }, []);
+
   if (!product) return null;
 
-  const message = `Hi! I'm interested in ${product.name} - ${window.location.href}`;
+  const message = `Hi! I'm interested in ${product.name} - ${currentUrl}`;
   const whatsappUrl = `https://wa.me/19417876746?text=${encodeURIComponent(message)}`;
 
   return (
