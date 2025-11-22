@@ -13,6 +13,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import WhatsAppButton from '@/components/ui/WhatsAppButton';
 import { prisma } from '@/lib/prisma';
+import { ReviewList } from '@/components/reviews/ReviewList';
 
 interface Product {
   id: number;
@@ -370,6 +371,11 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
               </div>
             </>
           )}
+
+          {/* Reviews Section */}
+          <div className="mt-12">
+            <ReviewList productId={product.id} />
+          </div>
 
           {/* Similar Products */}
           {similarProducts.length > 0 && (

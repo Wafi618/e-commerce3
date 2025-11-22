@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from './[...nextauth]';
+import { getAuthOptions } from './[...nextauth]';
 
 export interface AuthenticatedRequest extends NextApiRequest {
   user?: {
@@ -18,7 +18,7 @@ export function withAuth(
 ) {
   return async (req: AuthenticatedRequest, res: NextApiResponse) => {
     try {
-      const session = await getServerSession(req, res, authOptions);
+      const session = await getServerSession(req, res, getAuthOptions(req, res));
 
       if (!session || !session.user) {
         return res.status(401).json({
@@ -72,7 +72,7 @@ export function withOptionalAuth(
 ) {
   return async (req: AuthenticatedRequest, res: NextApiResponse) => {
     try {
-      const session = await getServerSession(req, res, authOptions);
+      const session = await getServerSession(req, res, getAuthOptions(req, res));
 
       if (session && session.user) {
         req.user = {

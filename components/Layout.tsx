@@ -2,6 +2,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ShoppingCart, Moon, Sun, LogIn, LogOut, UserCircle, History, User, MessageSquare, Menu, X, MessageCircle } from 'lucide-react';
+import Image from 'next/image';
 import { useAuth, useCart, useTheme, useUI, useMessage, useProduct, useOrder } from '@/contexts';
 import { ToastContainer } from './ui/ToastContainer';
 import { ConfirmModal } from './modals/ConfirmModal';
@@ -11,6 +12,8 @@ import { AddressModal } from './modals/AddressModal';
 import { OrderDetailsModal } from './modals/OrderDetailsModal';
 import { MessageModal } from './modals/MessageModal';
 import { PhoneVerificationModal } from './modals/PhoneVerificationModal';
+import { TopTicker } from './ui/TopTicker';
+import { Toaster } from 'react-hot-toast';
 
 interface LayoutProps {
   children: ReactNode;
@@ -42,8 +45,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       {/* Notification Containers */}
       <ToastContainer />
+      <Toaster position="bottom-right" />
       <ConfirmModal />
       <PhoneVerificationModal />
+
+
 
       {/* Navigation */}
       <nav className={`${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm sticky top-0 z-20`}>
@@ -59,9 +65,17 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
                 </Link>
               ) : (
                 <>
-                  <a href="/" className="flex items-center space-x-2">
-                    <ShoppingCart className={`w-8 h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                    <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} notranslate`}>
+                  <a href="/" className="flex items-center">
+                    <div className="relative w-24 h-24 mr-[-2.5rem] z-10">
+                      <Image
+                        src="/logo.svg"
+                        alt="Star Accessories Logo"
+                        fill
+                        className="object-contain"
+                        priority
+                      />
+                    </div>
+                    <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} notranslate relative z-0`}>
                       Star Accessories
                     </span>
                   </a>
@@ -226,6 +240,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
           </div>
         )}
       </nav>
+
+      <TopTicker />
 
       {/* Main Content */}
       <main>{children}</main>

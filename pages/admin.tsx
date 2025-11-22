@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Package, DollarSign, TrendingUp, CreditCard, Plus, Edit2, Trash2, MessageSquare, Key, Eye, EyeOff } from 'lucide-react';
+import { Package, DollarSign, TrendingUp, CreditCard, Plus, Edit2, Trash2, MessageSquare, Key, Eye, EyeOff, BarChart2, Bell } from 'lucide-react';
 import { getImageUrl } from '@/utils/imageUtils';
 import { CustomersTab } from '@/components/admin/CustomersTab';
+import { AnalyticsTab } from '@/components/admin/AnalyticsTab';
+import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
 import { Badge } from '@/components/ui/Badge';
 import { ProductModal } from '@/components/modals/ProductModal';
 import { OrderDetailsModal } from '@/components/modals/OrderDetailsModal';
@@ -158,6 +160,20 @@ export default function AdminPage() {
               }`}
           >
             Customers
+          </button>
+          <button
+            onClick={() => setAdminTab('analytics')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'analytics' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+          >
+            Analytics
+          </button>
+          <button
+            onClick={() => setAdminTab('announcements')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'announcements' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+          >
+            Announcements
           </button>
         </div>
 
@@ -672,6 +688,8 @@ export default function AdminPage() {
         )}
 
         {adminTab === 'customers' && <CustomersTab />}
+        {adminTab === 'analytics' && <AnalyticsTab darkMode={darkMode} />}
+        {adminTab === 'announcements' && <AnnouncementsTab darkMode={darkMode} />}
       </div>
 
       {showProductModal && (

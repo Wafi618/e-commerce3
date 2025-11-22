@@ -7,6 +7,7 @@ import { Layout } from '@/components/Layout';
 import { getImageUrl } from '@/utils/imageUtils';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { ParticlesBackground } from '@/components/ParticlesBackground';
+import { ProductImage } from '@/components/ui/ProductImage';
 import { useCart, useProduct, useTheme } from '@/contexts';
 import { prisma } from '@/lib/prisma';
 import { GetServerSideProps } from 'next';
@@ -157,12 +158,10 @@ export default function HomePage() {
                   {/* Clickable product image and name - takes to detail page */}
                   <Link href={`/product/${product.id}`}>
                     <div className={`h-48 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} flex items-center justify-center overflow-hidden cursor-pointer relative`}>
-                      <Image
-                        src={getImageUrl(product.image) || 'https://via.placeholder.com/300x200?text=No+Image'}
+                      <ProductImage
+                        src={product.image}
                         alt={product.name}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover hover:scale-105 transition-transform duration-300"
+                        className="w-full h-full"
                       />
                     </div>
                   </Link>
@@ -180,9 +179,9 @@ export default function HomePage() {
                     <div className="flex gap-2">
                       <Link href={`/product/${product.id}`} className="flex-1">
                         <button
-                          className={`w-full py-2 rounded-lg transition-colors ${darkMode
-                            ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          className={`w-full py-2 rounded-lg transition-colors btn-glass ${darkMode
+                            ? 'text-gray-200 hover:bg-white/10'
+                            : 'text-gray-700 hover:bg-black/5'
                             }`}
                         >
                           View Details
@@ -194,11 +193,11 @@ export default function HomePage() {
                           handleAddToCart(product);
                         }}
                         disabled={product.stock <= 0}
-                        className={`flex-1 py-2 rounded-lg transition-colors ${product.stock <= 0
+                        className={`flex-1 py-2 rounded-lg transition-colors btn-glass ${product.stock <= 0
                           ? darkMode
-                            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                            ? 'text-gray-500 cursor-not-allowed'
+                            : 'text-gray-500 cursor-not-allowed'
+                          : 'text-white bg-blue-600/80 hover:bg-blue-600'
                           }`}
                       >
                         {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
