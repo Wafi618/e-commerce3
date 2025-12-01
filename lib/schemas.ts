@@ -17,16 +17,35 @@ export const registerSchema = z.object({
 
 // --- Product Schemas ---
 
+const productOptionValueSchema = z.object({
+  name: z.string(),
+  image: z.string().optional().nullable(),
+});
+
+const productOptionSchema = z.object({
+  name: z.string(),
+  values: z.array(productOptionValueSchema),
+});
+
 export const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   price: z.union([z.string(), z.number()]).transform((val) => Number(val)).refine((val) => val > 0, 'Price must be positive'),
-  image: z.string().url('Invalid image URL').or(z.string().min(1, 'Image is required')),
+  image: z.string().optional().nullable(), // Now optional to support option-based images
   images: z.array(z.string()).optional(),
   stock: z.union([z.string(), z.number()]).transform((val) => Number(val)).refine((val) => val >= 0, 'Stock cannot be negative'),
   category: z.string().min(1, 'Category is required'),
   subcategory: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   isArchived: z.boolean().optional(),
+  options: z.array(productOptionSchema).optional(),
+}).refine(data => {
+  // Custom validation: Either main image or at least one option value image must exist
+  const hasMainImage = data.image && data.image.trim().length > 0;
+  const hasOptionImage = data.options?.some(opt => opt.values.some(val => val.image && val.image.trim().length > 0));
+  return hasMainImage || hasOptionImage;
+}, {
+  message: "Product must have either a main image or at least one option image",
+  path: ["image"],
 });
 
 // --- Cart & Order Schemas ---
@@ -36,6 +55,7 @@ const cartItemSchema = z.object({
   name: z.string(),
   price: z.union([z.string(), z.number()]).transform(val => Number(val)),
   quantity: z.union([z.string(), z.number()]).transform(val => Number(val)).refine(val => val >= 1, 'Quantity must be at least 1'),
+  selectedOptions: z.record(z.string(), z.string()).optional().nullable(),
 });
 
 export const checkoutSchema = z.object({

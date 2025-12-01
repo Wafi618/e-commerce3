@@ -17,20 +17,60 @@ export default async function handler(
       const cartItems = await prisma.cartItem.findMany({
         where: { userId },
         include: {
-          product: true,
+          product: {
+            include: {
+              options: {
+                include: {
+                  values: true
+                }
+              }
+            }
+          },
         },
       });
 
       // Transform to frontend format
-      const cart = cartItems.map(item => ({
-        id: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        image: item.product.image,
-        stock: item.product.stock,
-        category: item.product.category,
-        quantity: item.quantity,
-      }));
+      const cart = cartItems.map(item => {
+        // Determine correct image
+        let image = item.product.image;
+        
+        // 1. Check if selected options have an image
+        if (item.selectedOptions) {
+          const selectedOpts = item.selectedOptions as Record<string, string>;
+          for (const [optName, optValue] of Object.entries(selectedOpts)) {
+            const option = item.product.options.find(o => o.name === optName);
+            if (option) {
+              const value = option.values.find(v => v.name === optValue);
+              if (value && value.image && value.image.trim() !== '') {
+                image = value.image;
+                break;
+              }
+            }
+          }
+        }
+
+        // 2. Fallback: Check if main image is empty, then use ANY option image
+        if (!image || image.trim() === '') {
+           const fallbackOption = item.product.options.find(o => o.values.some(v => v.image && v.image.trim() !== ''));
+           if (fallbackOption) {
+             const fallbackValue = fallbackOption.values.find(v => v.image && v.image.trim() !== '');
+             if (fallbackValue) {
+               image = fallbackValue.image || '';
+             }
+           }
+        }
+
+        return {
+          id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          image: image,
+          stock: item.product.stock,
+          category: item.product.category,
+          quantity: item.quantity,
+          selectedOptions: item.selectedOptions,
+        };
+      });
 
       return res.status(200).json({
         success: true,
@@ -59,6 +99,7 @@ export default async function handler(
             userId,
             productId: item.id,
             quantity: item.quantity,
+            selectedOptions: item.selectedOptions || null,
           })),
           skipDuplicates: true,
         });

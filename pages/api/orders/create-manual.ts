@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { manualCheckoutSchema } from '@/lib/schemas';
 import { sendDiscordNotification } from '@/utils/discord';
+import { sendTelegramNotification } from '@/utils/telegram';
 
 export default async function handler(
   req: NextApiRequest,
@@ -92,6 +93,7 @@ export default async function handler(
               productId: item.id,
               quantity: item.quantity,
               price: item.price,
+              selectedOptions: item.selectedOptions || null,
             })),
           },
         },
@@ -113,10 +115,11 @@ export default async function handler(
     const notificationItems = cartItems.map((item: any) => ({
       name: item.name,
       quantity: item.quantity,
-      price: item.price
+      price: item.price,
+      selectedOptions: item.selectedOptions
     }));
 
-    await sendDiscordNotification({
+    const notificationOrderData = {
       id: orderId, // This is returned from the transaction
       customer: customerName,
       phone: phone,
@@ -124,7 +127,12 @@ export default async function handler(
       address: address,
       city: city,
       paymentMethod: 'MANUAL_BKASH'
-    }, notificationItems);
+    };
+
+    await Promise.all([
+      sendDiscordNotification(notificationOrderData, notificationItems),
+      sendTelegramNotification(notificationOrderData, notificationItems)
+    ]);
 
     return res.status(200).json({
       success: true,

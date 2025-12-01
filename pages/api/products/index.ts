@@ -46,6 +46,13 @@ export default async function handler(
 
       const products = await prisma.product.findMany({
         where,
+        include: {
+          options: {
+            include: {
+              values: true
+            }
+          }
+        },
         orderBy: isAdmin ? [
           { isArchived: 'asc' } as const, // Active (false) first, Archived (true) last
           { createdAt: 'desc' } as const
@@ -69,7 +76,7 @@ export default async function handler(
         });
       }
 
-      const { name, price, image, images, stock, category, subcategory, description } = result.data;
+      const { name, price, image, images, stock, category, subcategory, description, options } = result.data;
 
       const product = await prisma.product.create({
         data: {
@@ -82,7 +89,25 @@ export default async function handler(
           subcategory: subcategory || null,
           description: description || null,
           isArchived: result.data.isArchived || false,
+          options: {
+            create: options?.map((opt: any) => ({
+              name: opt.name,
+              values: {
+                create: opt.values.map((val: any) => ({
+                  name: val.name,
+                  image: val.image
+                }))
+              }
+            }))
+          }
         },
+        include: {
+          options: {
+            include: {
+              values: true
+            }
+          }
+        }
       });
 
       return res.status(201).json({

@@ -73,23 +73,44 @@ model VerificationToken {
 }
 
 model Product {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  price       Decimal     @db.Decimal(10, 2)
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  price       Decimal         @db.Decimal(10, 2)
   image       String
   stock       Int
   category    String
   description String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  images      String[]    @default([])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  images      String[]        @default([])
   subcategory String?
-  isArchived  Boolean     @default(false)
+  isArchived  Boolean         @default(false)
   cartItems   CartItem[]
   orderItems  OrderItem[]
   reviews     Review[]
+  options     ProductOption[]
 
   @@index([category])
+}
+
+model ProductOption {
+  id        String               @id @default(cuid())
+  name      String
+  productId Int
+  product   Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values    ProductOptionValue[]
+
+  @@index([productId])
+}
+
+model ProductOptionValue {
+  id       String        @id @default(cuid())
+  name     String
+  optionId String
+  option   ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  image    String?
+
+  @@index([optionId])
 }
 
 model Order {
@@ -136,30 +157,31 @@ model Message {
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  productId Int
-  quantity  Int
-  price     Decimal  @db.Decimal(10, 2)
-  createdAt DateTime @default(now())
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
+  id              Int      @id @default(autoincrement())
+  orderId         Int
+  productId       Int
+  quantity        Int
+  price           Decimal  @db.Decimal(10, 2)
+  selectedOptions Json?
+  createdAt       DateTime @default(now())
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product  @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
 }
 
 model CartItem {
-  id        Int      @id @default(autoincrement())
-  userId    String
-  productId Int
-  quantity  Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              Int      @id @default(autoincrement())
+  userId          String
+  productId       Int
+  quantity        Int
+  selectedOptions Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId])
   @@index([userId])
 }
 

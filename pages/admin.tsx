@@ -281,11 +281,11 @@ export default function AdminPage() {
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-gray-700 rounded flex items-center justify-center overflow-hidden flex-shrink-0">
                                 <img
-                                  src={getImageUrl(product.image) || 'https://via.placeholder.com/40?text=No+Image'}
+                                  src={getImageUrl((product as any).image || (product as any).options?.find((o: any) => o.values.find((v: any) => v.image))?.values.find((v: any) => v.image)?.image || '') || '/placeholder.svg'}
                                   alt={product.name}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
-                                    e.currentTarget.src = 'https://via.placeholder.com/40?text=No+Image';
+                                    e.currentTarget.src = '/placeholder.svg';
                                   }}
                                 />
                               </div>
@@ -438,16 +438,21 @@ export default function AdminPage() {
                                     <div className="flex items-center gap-3">
                                       <div className="w-12 h-12 bg-gray-700 rounded overflow-hidden flex items-center justify-center">
                                         <img
-                                          src={getImageUrl(item.product.image) || 'https://via.placeholder.com/48?text=No+Image'}
+                                          src={getImageUrl(item.product.image) || '/placeholder.svg'}
                                           alt={item.product.name}
                                           className="w-full h-full object-cover"
                                           onError={(e) => {
-                                            e.currentTarget.src = 'https://via.placeholder.com/48?text=No+Image';
+                                            e.currentTarget.src = '/placeholder.svg';
                                           }}
                                         />
                                       </div>
                                       <div>
                                         <p className="font-medium text-white">{item.product.name}</p>
+                                        {item.selectedOptions && (
+                                          <div className="text-xs text-gray-400">
+                                            {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                                          </div>
+                                        )}
                                         <p className="text-sm text-gray-400">৳{item.price} × {item.quantity}</p>
                                       </div>
                                     </div>
@@ -536,16 +541,21 @@ export default function AdminPage() {
                                     <div className="flex items-center gap-3">
                                       <div className="w-12 h-12 bg-gray-700 rounded overflow-hidden flex items-center justify-center">
                                         <img
-                                          src={getImageUrl(item.product.image) || 'https://via.placeholder.com/48?text=No+Image'}
+                                          src={getImageUrl(item.product.image) || '/placeholder.svg'}
                                           alt={item.product.name}
                                           className="w-full h-full object-cover"
                                           onError={(e) => {
-                                            e.currentTarget.src = 'https://via.placeholder.com/48?text=No+Image';
+                                            e.currentTarget.src = '/placeholder.svg';
                                           }}
                                         />
                                       </div>
                                       <div>
                                         <p className="font-medium text-white">{item.product.name}</p>
+                                        {item.selectedOptions && (
+                                          <div className="text-xs text-gray-400">
+                                            {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                                          </div>
+                                        )}
                                         <p className="text-sm text-gray-400">৳{item.price} × {item.quantity}</p>
                                       </div>
                                     </div>

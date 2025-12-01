@@ -132,16 +132,21 @@ export default function MyOrdersPage() {
                         <div className="flex items-center gap-3">
                           <div className={`w-12 h-12 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded overflow-hidden flex items-center justify-center`}>
                             <img
-                              src={getImageUrl(item.product.image) || 'https://via.placeholder.com/48?text=No+Image'}
+                              src={getImageUrl(item.product.image) || '/placeholder.svg'}
                               alt={item.product.name}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                e.currentTarget.src = 'https://via.placeholder.com/48?text=No+Image';
+                                e.currentTarget.src = '/placeholder.svg';
                               }}
                             />
                           </div>
                           <div>
                             <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{item.product.name}</p>
+                            {item.selectedOptions && (
+                              <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}
+                              </div>
+                            )}
                             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>৳{item.price} × {item.quantity}</p>
                           </div>
                         </div>

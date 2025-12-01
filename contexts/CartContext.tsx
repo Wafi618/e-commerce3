@@ -6,13 +6,14 @@ import { useNotification } from './NotificationContext';
  * Cart Item Interface
  */
 interface CartItem {
-  id: string;
+  id: string | number;
   name: string;
   price: number;
   quantity: number;
   stock: number;
   image?: string;
   category?: string;
+  selectedOptions?: Record<string, string>;
 }
 
 /**
@@ -40,9 +41,9 @@ interface CartContextValue {
   setAddressData: (data: AddressData) => void;
   showAddressModal: boolean;
   setShowAddressModal: (show: boolean) => void;
-  addToCart: (product: any) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, delta: number) => void;
+  addToCart: (product: any, quantity?: number) => void;
+  removeFromCart: (productId: string | number, selectedOptions?: Record<string, string>) => void;
+  updateQuantity: (productId: string | number, delta: number, selectedOptions?: Record<string, string>) => void;
   handleCheckout: () => void;
   proceedToPayment: () => Promise<void>;
   handleManualPaymentSubmit: (bkashNumber: string, trxId: string) => Promise<void>;
@@ -56,6 +57,16 @@ interface CartContextValue {
 interface CartProviderProps {
   children: ReactNode;
 }
+
+// Helper to compare options equality
+const areOptionsEqual = (opt1?: Record<string, string>, opt2?: Record<string, string>) => {
+  if (!opt1 && !opt2) return true;
+  if (!opt1 || !opt2) return false;
+  const keys1 = Object.keys(opt1).sort();
+  const keys2 = Object.keys(opt2).sort();
+  if (keys1.length !== keys2.length) return false;
+  return keys1.every(key => opt1[key] === opt2[key]);
+};
 
 /**
  * Cart Context
@@ -232,34 +243,75 @@ export function CartProvider({ children }: CartProviderProps) {
   /**
    * Adds a product to the cart
    * @param product - Product to add
+   * @param quantity - Quantity to add (default: 1)
    */
-  const addToCart = (product: any) => {
-    const existing = cart.find(item => item.id === product.id);
-    if (existing) {
-      // Check if adding one more would exceed stock
-      if (existing.quantity >= product.stock) {
-        addNotification(`Cannot add more. Only ${product.stock} items available in stock.`, 'warning');
-        return;
+  const addToCart = (product: any, quantity: number = 1) => {
+    // Determine the image to use:
+    let cartImage = product.image;
+    if (product.selectedOptions && product.options) {
+      // Find if any selected option has an image
+      for (const [optName, optValue] of Object.entries(product.selectedOptions)) {
+        const option = product.options.find((o: any) => o.name === optName);
+        if (option) {
+          const value = option.values.find((v: any) => v.name === optValue);
+          if (value && value.image && value.image.trim() !== '') {
+            cartImage = value.image;
+            break; // Use the first found option image
+          }
+        }
       }
-      setCart(cart.map(item =>
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-      ));
-    } else {
-      // Check if product has stock
-      if (product.stock < 1) {
-        addNotification('This product is out of stock.', 'warning');
-        return;
-      }
-      setCart([...cart, { ...product, quantity: 1 }]);
     }
+
+    // Fallback if main image is empty and no option image found
+    if (!cartImage || cartImage.trim() === '') {
+        // Try to find ANY option image
+        const anyOptionImage = product.options?.find((o: any) => o.values.find((v: any) => v.image))?.values.find((v: any) => v.image)?.image;
+        if (anyOptionImage) {
+            cartImage = anyOptionImage;
+        }
+    }
+
+    setCart(prevCart => {
+      const existingItemIndex = prevCart.findIndex(item => 
+        item.id === product.id && areOptionsEqual(item.selectedOptions, product.selectedOptions)
+      );
+
+      if (existingItemIndex > -1) {
+        // Item exists
+        const existingItem = prevCart[existingItemIndex];
+        if (existingItem.quantity + quantity > product.stock) {
+           addNotification(`Cannot add ${quantity} more. Only ${product.stock} items available in stock.`, 'warning');
+           return prevCart;
+        }
+        
+        const newCart = [...prevCart];
+        newCart[existingItemIndex] = {
+          ...existingItem,
+          quantity: existingItem.quantity + quantity
+        };
+        return newCart;
+      } else {
+        // New item
+        if (quantity > product.stock) {
+           addNotification(`Cannot add ${quantity} items. Only ${product.stock} items available in stock.`, 'warning');
+           return prevCart;
+        }
+        
+        return [...prevCart, { 
+          ...product, 
+          quantity: quantity,
+          image: cartImage 
+        }];
+      }
+    });
   };
 
   /**
    * Removes a product from the cart
    * @param productId - ID of product to remove
    */
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.id !== productId));
+  const removeFromCart = (productId: string | number, selectedOptions?: Record<string, string>) => {
+    setCart(cart.filter(item => !(item.id === productId && areOptionsEqual(item.selectedOptions, selectedOptions))));
   };
 
   /**
@@ -267,9 +319,9 @@ export function CartProvider({ children }: CartProviderProps) {
    * @param productId - ID of product to update
    * @param delta - Change in quantity (+1 or -1)
    */
-  const updateQuantity = (productId: string, delta: number) => {
+  const updateQuantity = (productId: string | number, delta: number, selectedOptions?: Record<string, string>) => {
     setCart(cart.map(item => {
-      if (item.id === productId) {
+      if (item.id === productId && areOptionsEqual(item.selectedOptions, selectedOptions)) {
         const newQty = item.quantity + delta;
         // Check if increasing quantity would exceed stock
         if (delta > 0 && newQty > item.stock) {
@@ -427,7 +479,9 @@ export function CartProvider({ children }: CartProviderProps) {
         const mergedCart = [...userCart];
 
         guestCart.forEach(guestItem => {
-          const existingItem = mergedCart.find(item => item.id === guestItem.id);
+          const existingItem = mergedCart.find(item => 
+            item.id === guestItem.id && areOptionsEqual(item.selectedOptions, guestItem.selectedOptions)
+          );
           if (existingItem) {
             existingItem.quantity += guestItem.quantity;
           } else {
@@ -471,14 +525,20 @@ export function CartProvider({ children }: CartProviderProps) {
 
       if (product) {
         if (product.stock >= orderItem.quantity) {
-          const existingCartItem = newCart.find(item => item.id === product.id);
+          const existingCartItem = newCart.find(item => 
+            item.id === product.id && areOptionsEqual(item.selectedOptions, orderItem.selectedOptions)
+          );
           if (existingCartItem) {
             existingCartItem.quantity += orderItem.quantity;
             if (existingCartItem.quantity > product.stock) {
                 existingCartItem.quantity = product.stock;
             }
           } else {
-            newCart.push({ ...product, quantity: orderItem.quantity });
+            newCart.push({ 
+              ...product, 
+              quantity: orderItem.quantity,
+              selectedOptions: orderItem.selectedOptions 
+            });
           }
           itemsAdded++;
         } else {

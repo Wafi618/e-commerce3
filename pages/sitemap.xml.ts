@@ -40,6 +40,9 @@ export const getServerSideProps: GetServerSideProps = async ({ res }) => {
   try {
     // We make an API call to gather the URLs for our site
     const products = await prisma.product.findMany({
+      where: {
+        isArchived: false,
+      },
       select: {
         id: true,
         updatedAt: true,

@@ -11,11 +11,38 @@ import { ProductImage } from '@/components/ui/ProductImage';
 import { useCart, useProduct, useTheme } from '@/contexts';
 import { prisma } from '@/lib/prisma';
 import { GetServerSideProps } from 'next';
+import { getServerSession } from 'next-auth/next';
+import { getAuthOptions } from './api/auth/[...nextauth]';
 
-export const getServerSideProps: GetServerSideProps = async () => {
+import { NextApiRequest, NextApiResponse } from 'next';
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
   try {
+    const session = await getServerSession(
+      context.req as unknown as NextApiRequest,
+      context.res as unknown as NextApiResponse,
+      getAuthOptions(context.req as unknown as NextApiRequest, context.res as unknown as NextApiResponse)
+    );
+    const isAdmin = session?.user?.role === 'ADMIN';
+
+    const where: any = {};
+    if (!isAdmin) {
+      where.isArchived = false;
+    }
+
     const products = await prisma.product.findMany({
-      orderBy: { createdAt: 'desc' },
+      where,
+      orderBy: isAdmin ? [
+        { isArchived: 'asc' },
+        { createdAt: 'desc' }
+      ] : { createdAt: 'desc' },
+      include: {
+        options: {
+          include: {
+            values: true
+          }
+        }
+      }
     });
 
     // Serialize Decimal to string/number for JSON
@@ -162,6 +189,7 @@ export default function HomePage() {
                         src={product.image}
                         alt={product.name}
                         className="w-full h-full"
+                        options={(product as any).options}
                       />
                     </div>
                   </Link>

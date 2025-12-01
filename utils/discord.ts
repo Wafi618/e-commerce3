@@ -3,7 +3,12 @@ export const sendDiscordNotification = async (order: any, items: any[]) => {
     if (!webhookUrl) return;
 
     const itemsList = items
-        .map((item: any) => `- ${item.quantity}x ${item.name || 'Product'} (৳${item.price})`)
+        .map((item: any) => {
+            const options = item.selectedOptions 
+                ? ` (${Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')})` 
+                : '';
+            return `- ${item.quantity}x ${item.name || 'Product'}${options} (৳${item.price})`;
+        })
         .join('\n');
 
     const embed = {

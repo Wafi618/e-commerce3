@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { checkoutSchema } from '@/lib/schemas';
 import { sendDiscordNotification } from '@/utils/discord';
+import { sendTelegramNotification } from '@/utils/telegram';
 
 const BKASH_USERNAME = process.env.BKASH_USERNAME || '';
 const BKASH_PASSWORD = process.env.BKASH_PASSWORD || '';
@@ -120,6 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             productId: item.id,
             quantity: item.quantity,
             price: item.price,
+            selectedOptions: item.selectedOptions || null,
           })),
         },
       },
@@ -209,10 +211,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const notificationItems = cartItems.map((item: any) => ({
       name: item.name,
       quantity: item.quantity,
-      price: item.price
+      price: item.price,
+      selectedOptions: item.selectedOptions
     }));
     // We pass the order object we just created
-    await sendDiscordNotification({
+    const notificationOrderData = {
       id: order.id,
       customer: customerName,
       phone: phone,
@@ -220,7 +223,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       address: address,
       city: city,
       paymentMethod: 'ONLINE_BKASH'
-    }, notificationItems);
+    };
+
+    await Promise.all([
+      sendDiscordNotification(notificationOrderData, notificationItems),
+      sendTelegramNotification(notificationOrderData, notificationItems)
+    ]);
 
     return res.status(200).json({
       success: true,

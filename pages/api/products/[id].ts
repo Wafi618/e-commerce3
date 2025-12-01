@@ -31,6 +31,13 @@ export default async function handler(
       // GET /api/products/[id] - Fetch a single product with similar products
       const product = await prisma.product.findUnique({
         where: { id: productId },
+        include: {
+          options: {
+            include: {
+              values: true
+            }
+          }
+        }
       });
 
       if (!product) {
@@ -71,7 +78,7 @@ export default async function handler(
         });
       }
 
-      const { name, price, image, images, stock, category, subcategory, description, isArchived } = result.data;
+      const { name, price, image, images, stock, category, subcategory, description, isArchived, options } = result.data;
 
       // Check if product exists
       const existingProduct = await prisma.product.findUnique({
@@ -97,10 +104,31 @@ export default async function handler(
       if (subcategory !== undefined) updateData.subcategory = subcategory;
       if (description !== undefined) updateData.description = description;
       if (isArchived !== undefined) updateData.isArchived = isArchived;
+      if (options !== undefined) {
+        updateData.options = {
+          deleteMany: {},
+          create: options.map((opt: any) => ({
+            name: opt.name,
+            values: {
+              create: opt.values.map((val: any) => ({
+                name: val.name,
+                image: val.image
+              }))
+            }
+          }))
+        };
+      }
 
       const updatedProduct = await prisma.product.update({
         where: { id: productId },
         data: updateData,
+        include: {
+            options: {
+                include: {
+                    values: true
+                }
+            }
+        }
       });
 
       return res.status(200).json({

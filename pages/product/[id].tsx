@@ -15,6 +15,18 @@ import WhatsAppButton from '@/components/ui/WhatsAppButton';
 import { prisma } from '@/lib/prisma';
 import { ReviewList } from '@/components/reviews/ReviewList';
 
+interface OptionValue {
+  id: string;
+  name: string;
+  image?: string;
+}
+
+interface ProductOption {
+  id: string;
+  name: string;
+  values: OptionValue[];
+}
+
 interface Product {
   id: number;
   name: string;
@@ -26,6 +38,7 @@ interface Product {
   subcategory?: string;
   description?: string;
   isArchived?: boolean;
+  options: ProductOption[];
 }
 
 interface ProductDetailData {
@@ -46,11 +59,38 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
   const [selectedImage, setSelectedImage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
   // Initialize state from props
   useEffect(() => {
     if (initialData?.product) {
-      setSelectedImage(initialData.product.image);
+      let initialImage = initialData.product.image;
+
+      // Fallback logic if main image is missing
+      if (!initialImage || initialImage.trim() === '') {
+        const optionWithImage = initialData.product.options?.find(opt => 
+          opt.values.some(val => val.image && val.image.trim() !== '')
+        );
+        if (optionWithImage) {
+          const valueWithImage = optionWithImage.values.find(val => val.image && val.image.trim() !== '');
+          if (valueWithImage) {
+            initialImage = valueWithImage.image || '';
+          }
+        }
+      }
+      
+      setSelectedImage(initialImage);
+      
+      // Initialize default options
+      if (initialData.product.options && initialData.product.options.length > 0) {
+        const defaults: Record<string, string> = {};
+        initialData.product.options.forEach(opt => {
+          if (opt.values.length > 0) {
+            defaults[opt.name] = opt.values[0].name;
+          }
+        });
+        setSelectedOptions(defaults);
+      }
     }
   }, [initialData]);
 
@@ -92,9 +132,16 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
   const allImages = [product.image, ...(product.images || [])].filter(Boolean);
 
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product);
+    // Check if all options are selected
+    if (product.options && product.options.length > 0) {
+      const missingOptions = product.options.filter(opt => !selectedOptions[opt.name]);
+      if (missingOptions.length > 0) {
+        alert(`Please select ${missingOptions.map(o => o.name).join(', ')}`);
+        return;
+      }
     }
+
+    addToCart({ ...product, selectedOptions }, quantity);
   };
 
   const handleNextImage = (e?: React.MouseEvent) => {
@@ -109,6 +156,13 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
     const currentIndex = allImages.indexOf(selectedImage);
     const prevIndex = (currentIndex - 1 + allImages.length) % allImages.length;
     setSelectedImage(allImages[prevIndex]);
+  };
+
+  const handleOptionChange = (optionName: string, value: string, image?: string) => {
+    setSelectedOptions(prev => ({ ...prev, [optionName]: value }));
+    if (image) {
+      setSelectedImage(image);
+    }
   };
 
   // JSON-LD Structured Data
@@ -166,11 +220,11 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
                 onClick={() => setShowLightbox(true)}
               >
                 <img
-                  src={getImageUrl(selectedImage) || 'https://via.placeholder.com/600x600?text=No+Image'}
+                  src={getImageUrl(selectedImage) || '/placeholder.svg'}
                   alt={product.name}
                   className="w-full h-96 object-cover transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://via.placeholder.com/600x600?text=No+Image';
+                    e.currentTarget.src = '/placeholder.svg';
                   }}
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
@@ -196,11 +250,11 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
                         } transition-colors`}
                     >
                       <img
-                        src={getImageUrl(img) || 'https://via.placeholder.com/150?text=No+Image'}
+                        src={getImageUrl(img) || '/placeholder.svg'}
                         alt={`${product.name} ${idx + 1}`}
                         className="w-full h-20 object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/150?text=No+Image';
+                          e.currentTarget.src = '/placeholder.svg';
                         }}
                       />
                     </button>
@@ -233,6 +287,37 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
                   ৳{Number(product.price).toFixed(2)}
                 </span>
               </div>
+
+              {/* Options Selection */}
+              {product.options && product.options.map((option) => (
+                <div key={option.id} className="mb-6">
+                  <h3 className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                    {option.name}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {option.values.map((value) => (
+                      <button
+                        key={value.id}
+                        onClick={() => handleOptionChange(option.name, value.name, value.image)}
+                        className={`px-4 py-2 rounded-md border transition-all flex items-center gap-2 ${
+                          selectedOptions[option.name] === value.name
+                            ? 'border-blue-600 ring-2 ring-blue-600 ring-opacity-50'
+                            : darkMode ? 'border-gray-700 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'
+                        } ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+                      >
+                        {value.image && (
+                          <img 
+                            src={getImageUrl(value.image)} 
+                            alt={value.name} 
+                            className="w-6 h-6 rounded object-cover" 
+                          />
+                        )}
+                        {value.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
               {/* Stock Status */}
               <div className="mb-6">
@@ -392,11 +477,11 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
                   >
                     <div className={`h-32 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} flex items-center justify-center overflow-hidden`}>
                       <img
-                        src={getImageUrl(similarProduct.image) || 'https://via.placeholder.com/200?text=No+Image'}
+                        src={getImageUrl(similarProduct.image || similarProduct.options?.find(o => o.values.find(v => v.image))?.values.find(v => v.image)?.image || '') || '/placeholder.svg'}
                         alt={similarProduct.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/200?text=No+Image';
+                          e.currentTarget.src = '/placeholder.svg';
                         }}
                       />
                     </div>
@@ -482,9 +567,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   try {
     const product = await prisma.product.findUnique({
       where: { id: productId },
+      include: {
+        options: {
+          include: {
+            values: true
+          }
+        }
+      }
     });
 
-    if (!product) {
+    if (!product || product.isArchived) {
       return {
         notFound: true,
       };
@@ -500,6 +592,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       orderBy: {
         createdAt: 'desc',
       },
+      include: {
+        options: {
+          include: {
+            values: true
+          }
+        }
+      }
     });
 
     // Serialize dates and decimals for JSON
