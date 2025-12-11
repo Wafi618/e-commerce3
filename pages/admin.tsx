@@ -5,6 +5,7 @@ import { getImageUrl } from '@/utils/imageUtils';
 import { CustomersTab } from '@/components/admin/CustomersTab';
 import { AnalyticsTab } from '@/components/admin/AnalyticsTab';
 import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
+import { DeepSeekChat } from '@/components/admin/DeepSeekChat';
 import { Badge } from '@/components/ui/Badge';
 import { ProductModal } from '@/components/modals/ProductModal';
 import { OrderDetailsModal } from '@/components/modals/OrderDetailsModal';
@@ -174,6 +175,13 @@ export default function AdminPage() {
               }`}
           >
             Announcements
+          </button>
+          <button
+            onClick={() => setAdminTab('ai-chat')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'ai-chat' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+          >
+            AI Chat
           </button>
         </div>
 
@@ -700,6 +708,7 @@ export default function AdminPage() {
         {adminTab === 'customers' && <CustomersTab />}
         {adminTab === 'analytics' && <AnalyticsTab darkMode={darkMode} />}
         {adminTab === 'announcements' && <AnnouncementsTab darkMode={darkMode} />}
+        {adminTab === 'ai-chat' && <DeepSeekChat />}
       </div>
 
       {showProductModal && (
