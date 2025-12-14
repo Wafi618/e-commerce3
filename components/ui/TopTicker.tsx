@@ -196,7 +196,7 @@ export const TopTicker = () => {
                     }}
                     onAnimationEnd={handleAnimationEnd}
                 >
-                    <span className="text-yellow-400 font-bold mr-4 text-base">Prayer Times ({division}):</span>
+                    <span className="text-yellow-400 font-bold mr-4 text-base">Salah Times ({division}):</span>
                     <div className="flex gap-6">
                         {prayerTimes && Object.entries(prayerTimes).map(([name, time]) => (
                             <div key={name} className={`flex flex-col items-center justify-center ${name.toLowerCase() === nextPrayer ? 'text-red-500 font-bold scale-110' : 'text-gray-300'}`}>

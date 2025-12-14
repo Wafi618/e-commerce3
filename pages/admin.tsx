@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Package, DollarSign, TrendingUp, CreditCard, Plus, Edit2, Trash2, MessageSquare, Key, Eye, EyeOff, BarChart2, Bell } from 'lucide-react';
+import { Package, DollarSign, TrendingUp, CreditCard, Plus, Edit2, Trash2, MessageSquare, Key, Eye, EyeOff, BarChart2, Bell, Layout } from 'lucide-react';
 import { getImageUrl } from '@/utils/imageUtils';
 import { CustomersTab } from '@/components/admin/CustomersTab';
 import { AnalyticsTab } from '@/components/admin/AnalyticsTab';
 import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
+import { LandingTab } from '@/components/admin/LandingTab';
 import { DeepSeekChat } from '@/components/admin/DeepSeekChat';
 import { Badge } from '@/components/ui/Badge';
 import { ProductModal } from '@/components/modals/ProductModal';
@@ -13,6 +14,30 @@ import { MessageModal } from '@/components/modals/MessageModal';
 import { useAuth, useProduct, useOrder, useMessage, useTheme, useNotification } from '@/contexts';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import { ConfirmModal } from '@/components/modals/ConfirmModal';
+import { GetServerSideProps } from 'next';
+import { getServerSession } from 'next-auth/next';
+import { getAuthOptions } from './api/auth/[...nextauth]';
+
+export const getServerSideProps: GetServerSideProps = async (context: any) => {
+  const session = await getServerSession(
+    context.req,
+    context.res,
+    getAuthOptions(context.req, context.res)
+  );
+
+  if (!session || session.user?.role !== 'ADMIN') {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
+};
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -128,13 +153,6 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-4 mb-8 overflow-x-auto">
           <button
-            onClick={() => setAdminTab('overview')}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-          >
-            Overview
-          </button>
-          <button
             onClick={() => setAdminTab('products')}
             className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'products' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
@@ -142,11 +160,25 @@ export default function AdminPage() {
             Products
           </button>
           <button
+            onClick={() => setAdminTab('ai-chat')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'ai-chat' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+          >
+            AI Chat
+          </button>
+          <button
             onClick={() => setAdminTab('orders')}
             className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'orders' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
           >
             Orders
+          </button>
+          <button
+            onClick={() => setAdminTab('overview')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'overview' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+          >
+            Overview
           </button>
           <button
             onClick={() => setAdminTab('messages')}
@@ -177,66 +209,13 @@ export default function AdminPage() {
             Announcements
           </button>
           <button
-            onClick={() => setAdminTab('ai-chat')}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'ai-chat' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            onClick={() => setAdminTab('landing')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'landing' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
           >
-            AI Chat
+            Landing Page
           </button>
         </div>
-
-        {adminTab === 'overview' && (
-          <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-gray-800 rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400">Total Revenue</span>
-                  <DollarSign className="w-5 h-5 text-green-600" />
-                </div>
-                <div className="text-3xl font-bold text-white">৳{Number(stats.totalRevenue).toFixed(2)}</div>
-              </div>
-              <div className="bg-gray-800 rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400">Total Orders</span>
-                  <Package className="w-5 h-5 text-blue-600" />
-                </div>
-                <div className="text-3xl font-bold text-white">{stats.totalOrders}</div>
-              </div>
-              <div className="bg-gray-800 rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400">Products</span>
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
-                </div>
-                <div className="text-3xl font-bold text-white">{stats.totalProducts}</div>
-              </div>
-              <div className="bg-gray-800 rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400">Pending Orders</span>
-                  <CreditCard className="w-5 h-5 text-orange-600" />
-                </div>
-                <div className="text-3xl font-bold text-white">{stats.pendingOrders}</div>
-              </div>
-            </div>
-
-            <div className="bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Recent Orders</h2>
-              <div className="space-y-3">
-                {orders.slice(0, 5).map(order => (
-                  <div key={order.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg">
-                    <div>
-                      <div className="font-semibold text-white">{(order as any).customer || 'N/A'}</div>
-                      <div className="text-sm text-gray-400">{(order as any).email || 'N/A'}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-white">৳{Number(order.total).toFixed(2)}</div>
-                      <Badge status={order.status}>{order.status}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {adminTab === 'products' && (
           <div>
@@ -350,6 +329,8 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {adminTab === 'ai-chat' && <DeepSeekChat />}
 
         {adminTab === 'orders' && (
           <div>
@@ -584,6 +565,63 @@ export default function AdminPage() {
           </div>
         )}
 
+        {adminTab === 'overview' && (
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400">Total Revenue</span>
+                  <DollarSign className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="text-3xl font-bold text-white">৳{Number(stats.totalRevenue).toFixed(2)}</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400">Total Orders</span>
+                  <Package className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="text-3xl font-bold text-white">{stats.totalOrders}</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400">Products</span>
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="text-3xl font-bold text-white">{stats.totalProducts}</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg shadow p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400">Pending Orders</span>
+                  <CreditCard className="w-5 h-5 text-orange-600" />
+                </div>
+                <div className="text-3xl font-bold text-white">{stats.pendingOrders}</div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Recent Orders</h2>
+              <div className="space-y-3">
+                {orders.slice(0, 5).map(order => (
+                  <div key={order.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg">
+                    <div>
+                      <div className="font-semibold text-white">{(order as any).customer || 'N/A'}</div>
+                      <div className="text-sm text-gray-400">{(order as any).email || 'N/A'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-white">৳{Number(order.total).toFixed(2)}</div>
+                      <Badge status={order.status}>{order.status}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+
+
+
+
         {adminTab === 'messages' && (
           <div>
             <div className="flex justify-between items-center mb-6">
@@ -708,7 +746,7 @@ export default function AdminPage() {
         {adminTab === 'customers' && <CustomersTab />}
         {adminTab === 'analytics' && <AnalyticsTab darkMode={darkMode} />}
         {adminTab === 'announcements' && <AnnouncementsTab darkMode={darkMode} />}
-        {adminTab === 'ai-chat' && <DeepSeekChat />}
+        {adminTab === 'landing' && <LandingTab />}
       </div>
 
       {showProductModal && (

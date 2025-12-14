@@ -237,3 +237,27 @@ model Review {
   @@index([productId])
   @@index([userId])
 }
+
+model LandingPage {
+  id           Int      @id @default(autoincrement())
+  heroTitle    String   @default("Discover Amazing Products")
+  heroSubtitle String   @default("Premium Fashion & Accessories")
+  heroImage    String?
+  heroVideo    String?
+  showVideo    Boolean  @default(false)
+  videoOrientation String @default("landscape") // landscape, portrait, square
+  buttonText   String   @default("Shop Now")
+  updatedAt    DateTime @updatedAt
+  media        HeroMedia[]
+}
+
+model HeroMedia {
+  id            Int         @id @default(autoincrement())
+  landingPageId Int
+  landingPage   LandingPage @relation(fields: [landingPageId], references: [id])
+  type          String      // "image" or "video"
+  url           String
+  orientation   String      @default("landscape") // landscape, portrait, square
+  order         Int         @default(0)
+  createdAt     DateTime    @default(now())
+}

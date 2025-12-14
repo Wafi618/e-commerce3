@@ -13,6 +13,8 @@ import { prisma } from '@/lib/prisma';
 import { GetServerSideProps } from 'next';
 import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from './api/auth/[...nextauth]';
+import { Hero } from '@/components/landing/Hero';
+import { Features } from '@/components/landing/Features';
 
 import { NextApiRequest, NextApiResponse } from 'next';
 
@@ -45,6 +47,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       }
     });
 
+    // Fetch Landing Page Config
+    const landingConfig = await prisma.landingPage.findFirst({
+      include: { media: { orderBy: { order: 'asc' } } }
+    });
+
+    // Serialize Decimal to string/number for JSON
+
     // Serialize Decimal to string/number for JSON
     const serializedProducts = products.map(p => ({
       ...p,
@@ -56,6 +65,21 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
       props: {
         products: serializedProducts,
+        landingConfig: landingConfig ? {
+          ...landingConfig,
+          updatedAt: landingConfig.updatedAt.toISOString(),
+          media: landingConfig.media ? landingConfig.media.map((m: any) => ({
+            ...m,
+            createdAt: m.createdAt.toISOString()
+          })) : []
+        } : {
+          heroTitle: "Discover Amazing Products",
+          heroSubtitle: "Premium Fashion & Accessories",
+          heroImage: null,
+          heroVideo: null,
+          showVideo: false,
+          buttonText: "Shop Now"
+        }
       },
     };
   } catch (error) {
@@ -68,7 +92,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 };
 
-export default function HomePage() {
+export default function HomePage({ products: initialProducts, landingConfig }: any) {
   const { addToCart } = useCart();
   const {
     products,
@@ -103,11 +127,16 @@ export default function HomePage() {
         <meta property="og:type" content="website" />
       </Head>
       <div className="relative">
-        <ParticlesBackground darkMode={darkMode} />
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Hero config={landingConfig} />
+        <Features />
+
+        {/* Shop Section */}
+        <div id="shop-section" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* <ParticlesBackground darkMode={darkMode} /> Background is now only for Hero if no image/video */}
+
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
-              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Discover Amazing Products</h1>
+              <h2 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Latest Collection</h2>
 
               {/* Search Button */}
               <button

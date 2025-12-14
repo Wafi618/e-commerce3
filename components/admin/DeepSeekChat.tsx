@@ -96,24 +96,38 @@ export const DeepSeekChat = () => {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let assistantResponse = '';
+            let buffer = '';
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
+                buffer += chunk;
+
+                const lines = buffer.split('\n');
+                // The last element might be incomplete, so we keep it in the buffer
+                buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) continue;
+
+                    if (trimmedLine.startsWith('data: ')) {
+                        const dataContent = trimmedLine.replace('data: ', '');
+
+                        if (dataContent === '[DONE]') continue;
+
                         try {
-                            const json = JSON.parse(line.replace('data: ', ''));
+                            const json = JSON.parse(dataContent);
                             const content = json.choices[0]?.delta?.content || '';
                             if (content) {
                                 assistantResponse += content;
                                 setMessages(prev => {
                                     const newMsgs = [...prev];
-                                    newMsgs[newMsgs.length - 1].content = assistantResponse;
+                                    if (newMsgs.length > 0) {
+                                        newMsgs[newMsgs.length - 1].content = assistantResponse;
+                                    }
                                     return newMsgs;
                                 });
                             }
@@ -273,8 +287,8 @@ export const DeepSeekChat = () => {
                                     )}
 
                                     <div className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
-                                            ? 'bg-indigo-600 text-white rounded-br-none'
-                                            : 'bg-gray-800 text-gray-100 rounded-bl-none'
+                                        ? 'bg-indigo-600 text-white rounded-br-none'
+                                        : 'bg-gray-800 text-gray-100 rounded-bl-none'
                                         }`}>
                                         <MessageContent content={msg.content} role={msg.role} />
                                     </div>
