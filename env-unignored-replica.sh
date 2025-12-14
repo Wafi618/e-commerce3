@@ -1,20 +1,29 @@
+# Database Configuration
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
 
+# Payment Gateway (bKash Sandbox)
+BKASH_USERNAME=sandbox_demo_user
+BKASH_PASSWORD=sample_password_123
+BKASH_APP_KEY=sample_app_key_1234567890
+BKASH_APP_SECRET=sample_app_secret_abcdefghijklmnop
 
-DATABASE_URL="postgresql://postgres:7101@localhost:5432/ecommerce"
-
-BKASH_USERNAME=sandboxTokenizedUser02
-BKASH_PASSWORD=sandboxTokenizedUser02@12345
-BKASH_APP_KEY=4f6o0cjiki2rfm34kfdadl1eqq
-BKASH_APP_SECRET=2is7hdktrekvrbljjh44ll3d9l1dtjo4pasmjvs5vl5qr3fug4b
-
-JWT_SECRET="your-super-secret-jwt-key-change-in-production"
-
-
+# Authentication
+JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-nextauth-secret-change-in-production"
+NEXTAUTH_SECRET="your-nextauth-secret-change-this-in-production"
 
-DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/1440831829937618992/hVezJR2cdsHkaDCjGCujSqARVPlGlUn8Bi-nnUWFdUoaVHkYuvqBZ1xGJX_XwJzWsRuV"
-FREEIMAGE_API_KEY="6d207e02198a847aa98d0a2a901485a5"
+# Third-Party Services
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/sample/webhook/path"
+FREEIMAGE_API_KEY="sample_freeimage_api_key_1234567890"
 
-GOOGLE_CLIENT_ID=15021540741-lkesjvdq3i28a0p9kro13qj51mgv1o0o.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+# Google OAuth
+GOOGLE_CLIENT_ID=1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-sample_client_secret_123456
+NEXT_PUBLIC_GOOGLE_CLIENT_ID="1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com"
+
+# Telegram Notifications
+TELEGRAM_BOT_TOKEN=1234567890:AAH_sample_bot_token_abcdefghijkl
+TELEGRAM_CHAT_ID=-1001234567890
+
+# AI API
+DEEPSEEK_API_KEY=sk-sample_api_key_1234567890abcdef
