@@ -49,9 +49,10 @@ interface ProductDetailData {
 interface ProductPageProps {
   initialData: ProductDetailData | null;
   error?: string;
+  preSelectedVariantId?: string | null;
 }
 
-export default function ProductDetailPage({ initialData, error }: ProductPageProps) {
+export default function ProductDetailPage({ initialData, error, preSelectedVariantId }: ProductPageProps) {
   const router = useRouter();
   const { addToCart } = useCart();
   const { darkMode } = useTheme();
@@ -65,9 +66,32 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
   useEffect(() => {
     if (initialData?.product) {
       let initialImage = initialData.product.image;
+      const defaults: Record<string, string> = {};
+      let variantImageFound = false;
 
-      // Fallback logic if main image is missing
-      if (!initialImage || initialImage.trim() === '') {
+      // Initialize default options
+      if (initialData.product.options && initialData.product.options.length > 0) {
+        initialData.product.options.forEach(opt => {
+          // Check if this option contains the pre-selected variant value
+          const preSelectedValue = preSelectedVariantId 
+            ? opt.values.find(val => val.id === preSelectedVariantId)
+            : null;
+
+          if (preSelectedValue) {
+            defaults[opt.name] = preSelectedValue.name;
+            if (preSelectedValue.image) {
+              initialImage = preSelectedValue.image;
+              variantImageFound = true;
+            }
+          } else if (opt.values.length > 0) {
+            defaults[opt.name] = opt.values[0].name;
+          }
+        });
+        setSelectedOptions(defaults);
+      }
+
+      // Fallback logic if main image is missing and no variant image was selected
+      if (!variantImageFound && (!initialImage || initialImage.trim() === '')) {
         const optionWithImage = initialData.product.options?.find(opt => 
           opt.values.some(val => val.image && val.image.trim() !== '')
         );
@@ -80,19 +104,8 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
       }
       
       setSelectedImage(initialImage);
-      
-      // Initialize default options
-      if (initialData.product.options && initialData.product.options.length > 0) {
-        const defaults: Record<string, string> = {};
-        initialData.product.options.forEach(opt => {
-          if (opt.values.length > 0) {
-            defaults[opt.name] = opt.values[0].name;
-          }
-        });
-        setSelectedOptions(defaults);
-      }
     }
-  }, [initialData]);
+  }, [initialData, preSelectedVariantId]);
 
   if (router.isFallback) {
     return (
@@ -556,7 +569,10 @@ export default function ProductDetailPage({ initialData, error }: ProductPagePro
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
-  const productId = parseInt(id);
+  
+  // Parse ID which might be in format "productId-variantId"
+  const [productIdStr, preSelectedVariantId] = id.split('-');
+  const productId = parseInt(productIdStr);
 
   if (isNaN(productId)) {
     return {
@@ -612,6 +628,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           product: serialize(product),
           similarProducts: serialize(similarProducts),
         },
+        preSelectedVariantId: preSelectedVariantId || null,
       },
     };
   } catch (error) {

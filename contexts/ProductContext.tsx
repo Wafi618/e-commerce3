@@ -14,6 +14,7 @@ interface Product {
   subcategory?: string;
   stock: number;
   isArchived?: boolean;
+  variantName?: string;
 }
 
 /**

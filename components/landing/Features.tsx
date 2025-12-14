@@ -24,7 +24,7 @@ export const Features = () => {
         {
             icon: <CreditCard className="w-8 h-8 text-orange-500" />,
             title: "Secure Payment",
-            description: "Multiple secure payment options including COD."
+            description: "Using Bkash and more coming soon."
         }
     ];
 
@@ -36,8 +36,8 @@ export const Features = () => {
                         <div
                             key={index}
                             className={`p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${darkMode
-                                    ? 'bg-gray-900 border-gray-700 hover:border-blue-500/50 hover:shadow-blue-900/20'
-                                    : 'bg-gray-50 border-gray-200 hover:border-blue-200 hover:shadow-blue-100'
+                                ? 'bg-gray-900 border-gray-700 hover:border-blue-500/50 hover:shadow-blue-900/20'
+                                : 'bg-gray-50 border-gray-200 hover:border-blue-200 hover:shadow-blue-100'
                                 }`}
                         >
                             <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-4 ${darkMode ? 'bg-gray-800' : 'bg-white shadow-sm'

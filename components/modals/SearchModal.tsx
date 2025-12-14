@@ -79,6 +79,11 @@ export const SearchModal: React.FC = () => {
                   <div className="flex-1">
                     <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                       {product.name}
+                      {product.variantName && (
+                        <span className={`ml-2 text-sm font-normal ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          ({product.variantName})
+                        </span>
+                      )}
                     </div>
                     <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       ৳{Number(product.price).toFixed(2)}

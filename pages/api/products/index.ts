@@ -61,6 +61,48 @@ export default async function handler(
         } as const,
       });
 
+      // Flatten variants if search is active (Fix for slideshow images and separate option display)
+      if (search) {
+        const flattenedProducts: any[] = [];
+
+        for (const product of products) {
+          // Find color option (case-insensitive)
+          const colorOption = product.options.find(
+            opt => opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
+          );
+
+          if (colorOption && colorOption.values.length > 0) {
+            // Create a variant for each color value
+            for (const val of colorOption.values) {
+              // Determine image: Value Image -> Main Image -> First Slide Image
+              // This fixes the issue where products with only slideshow images didn't show up correctly
+              const variantImage = val.image || product.image || (product.images && product.images.length > 0 ? product.images[0] : '');
+
+              flattenedProducts.push({
+                ...product,
+                id: `${product.id}-${val.id}`, // String ID to ensure uniqueness in list
+                name: product.name,
+                variantName: val.name,
+                image: variantImage,
+                // Keep other fields like price, stock, etc.
+              });
+            }
+          } else {
+            // No color options, just push original (but fix image fallback)
+            const mainImage = product.image || (product.images && product.images.length > 0 ? product.images[0] : '');
+            flattenedProducts.push({
+              ...product,
+              image: mainImage
+            });
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          data: flattenedProducts,
+        });
+      }
+
       return res.status(200).json({
         success: true,
         data: products,
