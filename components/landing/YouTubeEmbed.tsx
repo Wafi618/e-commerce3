@@ -10,9 +10,10 @@ declare global {
 interface YouTubeEmbedProps {
     videoId: string;
     className?: string;
+    loop?: boolean;
 }
 
-export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ videoId, className }) => {
+export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ videoId, className, loop = false }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const playerRef = useRef<any>(null);
 
@@ -36,7 +37,8 @@ export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ videoId, className }
                     rel: 0,
                     showinfo: 0,
                     mute: 1,
-                    loop: 0, // No looping, freeze at end
+                    loop: loop ? 1 : 0,
+                    playlist: loop ? videoId : undefined,
                 },
                 events: {
                     onReady: (event: any) => {
@@ -44,34 +46,31 @@ export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ videoId, className }
                         event.target.playVideo();
                     },
                     onStateChange: (event: any) => {
-                        // Do not rely on ENDED state (0) as it triggers overlay
+                        if (loop && event.data === 0) { // ENDED
+                             event.target.playVideo();
+                        }
                     },
                 },
             });
 
             playerRef.current = player;
 
-            // Interval to check time and pause before end
-            const timeUpdateInterval = setInterval(() => {
-                if (playerRef.current && playerRef.current.getCurrentTime) {
-                    const currentTime = playerRef.current.getCurrentTime();
-                    const duration = playerRef.current.getDuration();
+            // Interval to check time and pause before end (Only if NOT looping)
+            if (!loop) {
+                const timeUpdateInterval = setInterval(() => {
+                    if (playerRef.current && playerRef.current.getCurrentTime) {
+                        const currentTime = playerRef.current.getCurrentTime();
+                        const duration = playerRef.current.getDuration();
 
-                    // Pause 0.4s before end to avoid "Replay" overlay
-                    if (duration > 0 && duration - currentTime <= 0.4) {
-                        playerRef.current.pauseVideo();
-                        clearInterval(timeUpdateInterval);
+                        // Pause 0.4s before end to avoid "Replay" overlay
+                        if (duration > 0 && duration - currentTime <= 0.4) {
+                            playerRef.current.pauseVideo();
+                            clearInterval(timeUpdateInterval);
+                        }
                     }
-                }
-            }, 100);
-
-            // Cleanup interval when component unmounts - we attach this to the playerRef for cleanup? 
-            // Better: attach to a ref or just rely on the main cleanup effect?
-            // The main cleanup function needs access to this interval ID. 
-            // We can store it in a ref or simply clear it in the return of createPlayer? 
-            // Actually, useEffect cleanup is what runs. We need to store this interval ID.
-            // Let's attach it to the window or a ref.
-            (playerRef.current as any)._timeInterval = timeUpdateInterval;
+                }, 100);
+                (playerRef.current as any)._timeInterval = timeUpdateInterval;
+            }
         };
 
         // 2. Load API if not loaded

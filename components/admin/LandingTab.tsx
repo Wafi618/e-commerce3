@@ -10,6 +10,9 @@ interface HeroMedia {
     videoUrl?: string; // Local state for persistence
     imageUrl?: string; // Local state for persistence
     orientation: 'landscape' | 'portrait' | 'square';
+    loop?: boolean;
+    blurTop?: number;
+    blurBottom?: number;
 }
 
 interface LandingPageConfig {
@@ -52,7 +55,10 @@ export const LandingTab = () => {
             let media = (data.media || []).map((m: any) => ({
                 ...m,
                 videoUrl: m.type === 'video' ? m.url : '',
-                imageUrl: m.type === 'image' ? m.url : ''
+                imageUrl: m.type === 'image' ? m.url : '',
+                loop: m.loop ?? false,
+                blurTop: m.blurTop ?? 10,
+                blurBottom: m.blurBottom ?? 10
             }));
 
             if (media.length === 0 && (data.heroImage || (data.showVideo && data.heroVideo))) {
@@ -62,7 +68,10 @@ export const LandingTab = () => {
                         url: data.heroVideo,
                         videoUrl: data.heroVideo,
                         imageUrl: '',
-                        orientation: data.videoOrientation || 'landscape'
+                        orientation: data.videoOrientation || 'landscape',
+                        loop: false,
+                        blurTop: 10,
+                        blurBottom: 10
                     });
                 } else if (data.heroImage) {
                     media.push({
@@ -70,7 +79,10 @@ export const LandingTab = () => {
                         url: data.heroImage,
                         videoUrl: '',
                         imageUrl: data.heroImage,
-                        orientation: 'landscape'
+                        orientation: 'landscape',
+                        loop: false,
+                        blurTop: 10,
+                        blurBottom: 10
                     });
                 }
             }
@@ -123,7 +135,10 @@ export const LandingTab = () => {
                 url: '',
                 videoUrl: '',
                 imageUrl: '',
-                orientation: 'landscape'
+                orientation: 'landscape',
+                loop: false,
+                blurTop: 10,
+                blurBottom: 10
             }]
         }));
     };
@@ -243,7 +258,7 @@ export const LandingTab = () => {
                                     <div key={index} className="bg-gray-900 p-4 rounded-lg border border-gray-700 relative animate-fadeIn group">
                                         <button
                                             onClick={() => removeMedia(index)}
-                                            className="absolute top-2 right-2 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-all opacity-0 group-hover:opacity-100"
+                                            className="absolute top-2 right-2 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-all opacity-0 group-hover:opacity-100 z-10"
                                             title="Remove"
                                         >
                                             <Trash2 size={16} />
@@ -279,6 +294,51 @@ export const LandingTab = () => {
                                                                 {opt}
                                                             </button>
                                                         ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Advanced Config */}
+                                                <div className="pt-2 border-t border-gray-800 space-y-3">
+                                                    {item.type === 'video' && (
+                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={item.loop ?? false}
+                                                                onChange={(e) => updateMedia(index, { loop: e.target.checked })}
+                                                                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
+                                                            />
+                                                            <span className="text-xs text-gray-400">Loop Video</span>
+                                                        </label>
+                                                    )}
+
+                                                    <div className="space-y-1">
+                                                        <div className="flex justify-between text-xs text-gray-400">
+                                                            <span>Top Blur</span>
+                                                            <span className="text-gray-500">{item.blurTop ?? 10}%</span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="50"
+                                                            value={item.blurTop ?? 10}
+                                                            onChange={(e) => updateMedia(index, { blurTop: parseInt(e.target.value) })}
+                                                            className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        <div className="flex justify-between text-xs text-gray-400">
+                                                            <span>Bottom Blur</span>
+                                                            <span className="text-gray-500">{item.blurBottom ?? 10}%</span>
+                                                        </div>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max="50"
+                                                            value={item.blurBottom ?? 10}
+                                                            onChange={(e) => updateMedia(index, { blurBottom: parseInt(e.target.value) })}
+                                                            className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>

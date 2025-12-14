@@ -72,7 +72,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 type: m.type,
                                 url: m.url,
                                 orientation: m.orientation || 'landscape',
-                                order: index
+                                order: index,
+                                loop: m.loop ?? false,
+                                blurTop: m.blurTop ?? 10,
+                                blurBottom: m.blurBottom ?? 10
                             }))
                         }
                     },
@@ -95,7 +98,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                 type: m.type,
                                 url: m.url,
                                 orientation: m.orientation || 'landscape',
-                                order: index
+                                order: index,
+                                loop: m.loop ?? false,
+                                blurTop: m.blurTop ?? 10,
+                                blurBottom: m.blurBottom ?? 10
                             }))
                         }
                     },

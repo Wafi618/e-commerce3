@@ -64,8 +64,8 @@ export const Hero: React.FC<HeroProps> = ({ config }) => {
                             {/* Support for multiple media items */}
                             {(config.media && config.media.length > 0 ? config.media : (
                                 // Fallback for old single media config if no new media array exists
-                                (config.showVideo && config.heroVideo) ? [{ type: 'video', url: config.heroVideo, orientation: config.videoOrientation || 'landscape' }] :
-                                    config.heroImage ? [{ type: 'image', url: config.heroImage, orientation: 'landscape' }] : []
+                                (config.showVideo && config.heroVideo) ? [{ type: 'video', url: config.heroVideo, orientation: config.videoOrientation || 'landscape', loop: false, blurTop: 10, blurBottom: 10 }] :
+                                    config.heroImage ? [{ type: 'image', url: config.heroImage, orientation: 'landscape', loop: false, blurTop: 10, blurBottom: 10 }] : []
                             )).map((item: any, index: number) => (
                                 <React.Fragment key={index}>
                                     <div className={`relative shrink-0 ${item.orientation === 'portrait' ? 'aspect-[9/16] w-[280px] md:w-[320px]' :
@@ -85,18 +85,28 @@ export const Hero: React.FC<HeroProps> = ({ config }) => {
                                                 if (youtubeId) {
                                                     return (
                                                         <div className="relative w-full h-full group">
-                                                            <YouTubeEmbed videoId={youtubeId} className="w-full h-full object-cover pointer-events-none transform scale-[1.00]" />
+                                                            <YouTubeEmbed 
+                                                                videoId={youtubeId} 
+                                                                className="w-full h-full object-cover pointer-events-none transform scale-[1.00]" 
+                                                                loop={item.loop}
+                                                            />
                                                             {/* Top Blur Overlay - thicker to cover title */}
-                                                            <div className="absolute top-0 left-0 right-0 h-[10%] bg-black/40 backdrop-blur-md z-10 pointer-events-none transition-opacity duration-300"></div>
+                                                            <div 
+                                                                className="absolute top-0 left-0 right-0 bg-black/40 backdrop-blur-md z-10 pointer-events-none transition-opacity duration-300"
+                                                                style={{ height: `${item.blurTop ?? 10}%` }}
+                                                            ></div>
                                                             {/* Bottom Blur Overlay - thick enough for controls */}
-                                                            <div className="absolute bottom-0 left-0 right-0 h-[10%] bg-black/40 backdrop-blur-md z-10 pointer-events-none transition-opacity duration-300"></div>
+                                                            <div 
+                                                                className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md z-10 pointer-events-none transition-opacity duration-300"
+                                                                style={{ height: `${item.blurBottom ?? 10}%` }}
+                                                            ></div>
                                                         </div>
                                                     );
                                                 } else {
                                                     return (
                                                         <video
                                                             autoPlay
-                                                            loop
+                                                            loop={item.loop ?? true}
                                                             muted
                                                             playsInline
                                                             className="w-full h-full object-cover"

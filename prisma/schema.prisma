@@ -260,4 +260,7 @@ model HeroMedia {
   orientation   String      @default("landscape") // landscape, portrait, square
   order         Int         @default(0)
   createdAt     DateTime    @default(now())
+  loop          Boolean     @default(false)
+  blurTop       Int         @default(10)
+  blurBottom    Int         @default(10)
 }
