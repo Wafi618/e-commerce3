@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    allowedDevOrigins: ['https://starxessories.cc'],
+    allowedDevOrigins: ['https://starxessories.cc', 'starxessories.cc'],
     reactStrictMode: true,
     images: {
         remotePatterns: [
