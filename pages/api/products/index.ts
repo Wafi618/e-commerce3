@@ -1,9 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
 import { productSchema } from '@/lib/schemas';
 import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '../auth/[...nextauth]';
-
+import { ProductService } from '@/lib/services/productService';
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,96 +11,18 @@ export default async function handler(
   try {
     if (req.method === 'GET') {
       // GET /api/products - Fetch all products
-      const { category, search } = req.query;
-
-      const where: any = {};
-
-      // Filter by category if provided
-      if (category && category !== 'All') {
-        where.category = category as string;
-      }
-
-      const { subcategory } = req.query;
-      if (subcategory && subcategory !== 'All') {
-        where.subcategory = subcategory as string;
-      }
-
-      // Search by product name if provided
-      if (search) {
-        where.name = {
-          contains: search as string,
-          mode: 'insensitive',
-        };
-      }
+      const { category, subcategory, search } = req.query;
 
       // Check if user is admin
       const session = await getServerSession(req, res, getAuthOptions(req, res));
       const isAdmin = session?.user?.role === 'ADMIN';
 
-      // Filter out archived products for non-admins
-      // Filter out archived products for non-admins
-      if (!isAdmin) {
-        where.isArchived = false;
-      }
-
-      const products = await prisma.product.findMany({
-        where,
-        include: {
-          options: {
-            include: {
-              values: true
-            }
-          }
-        },
-        orderBy: isAdmin ? [
-          { isArchived: 'asc' } as const, // Active (false) first, Archived (true) last
-          { createdAt: 'desc' } as const
-        ] : {
-          createdAt: 'desc',
-        } as const,
+      const products = await ProductService.getProducts({
+        category: category as string,
+        subcategory: subcategory as string,
+        search: search as string,
+        isAdmin
       });
-
-      // Flatten variants if search is active (Fix for slideshow images and separate option display)
-      if (search) {
-        const flattenedProducts: any[] = [];
-
-        for (const product of products) {
-          // Find color option (case-insensitive)
-          const colorOption = product.options.find(
-            opt => opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'
-          );
-
-          if (colorOption && colorOption.values.length > 0) {
-            // Create a variant for each color value
-            for (const val of colorOption.values) {
-              // Determine image: Value Image -> Main Image -> First Slide Image
-              // This fixes the issue where products with only slideshow images didn't show up correctly
-              const variantImage = val.image || product.image || (product.images && product.images.length > 0 ? product.images[0] : '');
-
-              flattenedProducts.push({
-                ...product,
-                id: `${product.id}-${val.id}`, // String ID to ensure uniqueness in list
-                name: product.name,
-                variantName: val.name,
-                image: variantImage,
-                // Keep other fields like price, stock, etc.
-              });
-            }
-          } else {
-            // No color options, just push original (but fix image fallback)
-            const mainImage = product.image || (product.images && product.images.length > 0 ? product.images[0] : '');
-            flattenedProducts.push({
-              ...product,
-              image: mainImage
-            });
-          }
-        }
-
-        return res.status(200).json({
-          success: true,
-          data: flattenedProducts,
-        });
-      }
 
       return res.status(200).json({
         success: true,
@@ -118,38 +39,11 @@ export default async function handler(
         });
       }
 
-      const { name, price, image, images, stock, category, subcategory, description, options } = result.data;
-
-      const product = await prisma.product.create({
-        data: {
-          name,
-          price: price, // Zod transforms this to number
-          image: image,
-          images: images || [],
-          stock: stock, // Zod transforms this to number
-          category,
-          subcategory: subcategory || null,
-          description: description || null,
-          isArchived: result.data.isArchived || false,
-          options: {
-            create: options?.map((opt: any) => ({
-              name: opt.name,
-              values: {
-                create: opt.values.map((val: any) => ({
-                  name: val.name,
-                  image: val.image
-                }))
-              }
-            }))
-          }
-        },
-        include: {
-          options: {
-            include: {
-              values: true
-            }
-          }
-        }
+      const product = await ProductService.createProduct({
+        ...result.data,
+        price: Number(result.data.price),
+        stock: Number(result.data.stock),
+        image: result.data.image || '',
       });
 
       return res.status(201).json({

@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
 import { manualCheckoutSchema } from '@/lib/schemas';
-import { sendDiscordNotification } from '@/utils/discord';
-import { sendTelegramNotification } from '@/utils/telegram';
+import { OrderService } from '@/lib/services/orderService';
 
 export default async function handler(
   req: NextApiRequest,
@@ -39,100 +37,30 @@ export default async function handler(
       trxId,
     } = result.data;
 
-    // Use interactive transaction to ensure stock safety
-    const orderId = await prisma.$transaction(async (tx) => {
-      // 1. Validate and Reserve Stock
-      for (const item of cartItems) {
-        const product = await tx.product.findUnique({
-          where: { id: item.id },
-          select: { stock: true, name: true },
-        });
-
-        if (!product) {
-          throw new Error(`Product "${item.name}" not found`);
-        }
-
-        if (product.stock < item.quantity) {
-          throw new Error(`Insufficient stock for "${product.name}". Available: ${product.stock}, Requested: ${item.quantity}`);
-        }
-
-        // Decrement stock
-        await tx.product.update({
-          where: { id: item.id },
-          data: { stock: { decrement: item.quantity } },
-        });
-      }
-
-      // 2. Create Order
-      const order = await tx.order.create({
-        data: {
-          // Conditionally connect the user if a userId exists
-          ...(userId && {
-            user: {
-              connect: {
-                id: userId,
-              },
-            },
-          }),
-          customer: customerName,
-          email: customerEmail,
-          phone: phone || null,
-          city: city || null,
-          country: country || null,
-          address: address || null,
-          house: house || null,
-          floor: floor || null,
-          notes: notes || null,
-          total: new (require('decimal.js'))(amount as any),
-          status: 'PENDING', // Admin must verify this manually
-          paymentMethod: 'MANUAL_BKASH',
-          paymentPhoneNumber: bkashNumber,
-          paymentTrxId: trxId,
-          orderItems: {
-            create: cartItems.map((item: any) => ({
-              productId: item.id,
-              quantity: item.quantity,
-              price: item.price,
-              selectedOptions: item.selectedOptions || null,
-            })),
-          },
-        },
-      });
-
-      // 3. Clear Cart (if user logged in)
-      if (userId) {
-        await tx.cartItem.deleteMany({
-          where: {
-            userId: userId,
-          },
-        });
-      }
-
-      return order.id;
+    const orderId = await OrderService.createManualOrder({
+      customerName,
+      email: customerEmail,
+      userId,
+      phone,
+      city,
+      country,
+      address,
+      house,
+      floor,
+      notes,
+      total: Number(amount), // Schema already validates this as number (or transform if needed, but OrderService expects number)
+      status: 'PENDING',
+      paymentMethod: 'MANUAL_BKASH',
+      paymentPhoneNumber: bkashNumber,
+      paymentTrxId: trxId,
+      items: cartItems.map((item: any) => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        name: item.name,
+        selectedOptions: item.selectedOptions
+      }))
     });
-
-    // Send Discord Notification for Manual Order
-    const notificationItems = cartItems.map((item: any) => ({
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      selectedOptions: item.selectedOptions
-    }));
-
-    const notificationOrderData = {
-      id: orderId, // This is returned from the transaction
-      customer: customerName,
-      phone: phone,
-      total: amount,
-      address: address,
-      city: city,
-      paymentMethod: 'MANUAL_BKASH'
-    };
-
-    await Promise.all([
-      sendDiscordNotification(notificationOrderData, notificationItems),
-      sendTelegramNotification(notificationOrderData, notificationItems)
-    ]);
 
     return res.status(200).json({
       success: true,
@@ -145,7 +73,5 @@ export default async function handler(
       success: false,
       error: error instanceof Error ? error.message : 'Something went wrong'
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
