@@ -27,3 +27,6 @@ TELEGRAM_CHAT_ID=-1001234567890
 
 # AI API
 DEEPSEEK_API_KEY=sk-sample_api_key_1234567890abcdef
+
+GMAIL_USER=example@gmail.com
+GMAIL_APP_PASSWORD=your apps pass here
