@@ -1,4 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { getServerSession } from 'next-auth/next';
+import { getAuthOptions } from '../auth/[...nextauth]';
 
 // Increase the body size limit to allow larger image uploads
 export const config = {
@@ -11,6 +13,11 @@ export const config = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') return res.status(405).end();
+
+    const session = await getServerSession(req, res, getAuthOptions(req, res));
+    if (!session || session.user.role !== 'ADMIN') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const { imageBase64 } = req.body;
     const apiKey = process.env.FREEIMAGE_API_KEY;
