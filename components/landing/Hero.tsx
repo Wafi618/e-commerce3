@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { ParticlesBackground } from '../ParticlesBackground';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -19,13 +20,6 @@ interface HeroProps {
 
 export const Hero: React.FC<HeroProps> = ({ config }) => {
     const { darkMode } = useTheme();
-
-    const scrollToShop = () => {
-        const shopSection = document.getElementById('shop-section');
-        if (shopSection) {
-            shopSection.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
 
     const getAspectRatioClass = () => {
         switch (config.videoOrientation) {
@@ -85,18 +79,18 @@ export const Hero: React.FC<HeroProps> = ({ config }) => {
                                                 if (youtubeId) {
                                                     return (
                                                         <div className="relative w-full h-full group">
-                                                            <YouTubeEmbed 
-                                                                videoId={youtubeId} 
-                                                                className="w-full h-full object-cover pointer-events-none transform scale-[1.00]" 
+                                                            <YouTubeEmbed
+                                                                videoId={youtubeId}
+                                                                className="w-full h-full object-cover pointer-events-none transform scale-[1.00]"
                                                                 loop={item.loop}
                                                             />
                                                             {/* Top Blur Overlay - thicker to cover title */}
-                                                            <div 
+                                                            <div
                                                                 className="absolute top-0 left-0 right-0 bg-black/40 backdrop-blur-md z-10 pointer-events-none transition-opacity duration-300"
                                                                 style={{ height: `${item.blurTop ?? 10}%` }}
                                                             ></div>
                                                             {/* Bottom Blur Overlay - thick enough for controls */}
-                                                            <div 
+                                                            <div
                                                                 className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md z-10 pointer-events-none transition-opacity duration-300"
                                                                 style={{ height: `${item.blurBottom ?? 10}%` }}
                                                             ></div>
@@ -128,27 +122,29 @@ export const Hero: React.FC<HeroProps> = ({ config }) => {
 
                                     {/* Mobile Button: After every item */}
                                     <div className="w-full flex justify-center py-6 md:hidden">
-                                        <button
-                                            onClick={scrollToShop}
-                                            className="group relative inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full text-lg font-bold transition-all hover:bg-blue-700 hover:shadow-xl hover:-translate-y-1 overflow-hidden"
-                                        >
-                                            <span className="relative z-10">{config.buttonText || "Shop Now"}</span>
-                                            <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
-                                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                                        </button>
+                                        <Link href="/store">
+                                            <button
+                                                className="group relative inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full text-lg font-bold transition-all hover:bg-blue-700 hover:shadow-xl hover:-translate-y-1 overflow-hidden"
+                                            >
+                                                <span className="relative z-10">{config.buttonText || "Shop Now"}</span>
+                                                <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+                                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                                            </button>
+                                        </Link>
                                     </div>
 
                                     {/* Desktop Button: After every 3rd item (end of a row) OR at the very end of list */}
                                     {((index + 1) % 3 === 0 || index === (config.media || []).length - 1) && (
                                         <div className="w-full hidden md:flex justify-center py-10 basis-full">
-                                            <button
-                                                onClick={scrollToShop}
-                                                className="group relative inline-flex items-center gap-3 px-10 py-5 bg-blue-600 text-white rounded-full text-xl font-bold transition-all hover:bg-blue-700 hover:shadow-2xl hover:shadow-blue-500/40 hover:-translate-y-1 overflow-hidden"
-                                            >
-                                                <span className="relative z-10">{config.buttonText || "Shop Now"}</span>
-                                                <ArrowRight className="w-6 h-6 relative z-10 group-hover:translate-x-1 transition-transform" />
-                                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                                            </button>
+                                            <Link href="/store">
+                                                <button
+                                                    className="group relative inline-flex items-center gap-3 px-10 py-5 bg-blue-600 text-white rounded-full text-xl font-bold transition-all hover:bg-blue-700 hover:shadow-2xl hover:shadow-blue-500/40 hover:-translate-y-1 overflow-hidden"
+                                                >
+                                                    <span className="relative z-10">{config.buttonText || "Shop Now"}</span>
+                                                    <ArrowRight className="w-6 h-6 relative z-10 group-hover:translate-x-1 transition-transform" />
+                                                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                                                </button>
+                                            </Link>
                                         </div>
                                     )}
                                 </React.Fragment>

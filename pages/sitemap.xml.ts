@@ -4,31 +4,48 @@ import { prisma } from '@/lib/prisma';
 const EXTERNAL_DATA_URL = 'https://starxessories.cc';
 
 function generateSiteMap(products: any[]) {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!--We manually set the two URLs we know already-->
+  // Static pages that should be indexed
+  const staticPages = [
+    '', // Home
+    '/store',
+    // Add other public static pages here if they exist
+  ];
+
+  const staticUrls = staticPages
+    .map((page) => {
+      return `
   <url>
-    <loc>${EXTERNAL_DATA_URL}</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>${EXTERNAL_DATA_URL}/contact</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  ${products
-      .map(({ id, updatedAt }) => {
-        return `
+      <loc>${EXTERNAL_DATA_URL}${page}</loc>
+      <changefreq>daily</changefreq>
+      <priority>${page === '' ? '1.0' : '0.8'}</priority>
+  </url>`;
+    })
+    .join('');
+
+  const productUrls = products
+    .filter(({ id, updatedAt }) => id && updatedAt) // Ensure valid data
+    .map(({ id, updatedAt }) => {
+      let dateString;
+      try {
+        dateString = new Date(updatedAt).toISOString();
+      } catch (e) {
+        dateString = new Date().toISOString(); // Fallback to current date
+      }
+      return `
   <url>
       <loc>${`${EXTERNAL_DATA_URL}/product/${id}`}</loc>
-      <lastmod>${new Date(updatedAt).toISOString()}</lastmod>
+      <lastmod>${dateString}</lastmod>
       <changefreq>weekly</changefreq>
       <priority>0.8</priority>
   </url>
 `;
-      })
-      .join('')}
+    })
+    .join('');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticUrls}
+${productUrls}
 </urlset>`;
 }
 

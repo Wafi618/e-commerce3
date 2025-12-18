@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { sendOrderConfirmationEmail, sendAdminOrderReceivedEmail } from '@/lib/services/emailService';
 
 
 const BKASH_USERNAME = process.env.BKASH_USERNAME || '';
@@ -68,6 +69,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           where: { userId: order.userId },
         });
       }
+
+      // Send Emails
+      const validOrderItems = order.orderItems.map((item: any) => ({
+        ...item,
+        productId: String(item.productId),
+        selectedOptions: item.selectedOptions
+      }));
+
+      const emailData = {
+        customerName: order.customer,
+        email: order.email,
+        phone: order.phone,
+        city: order.city,
+        country: order.country,
+        address: order.address,
+        house: order.house,
+        floor: order.floor,
+        notes: order.notes,
+        total: Number(order.total),
+        paymentMethod: 'ONLINE_BKASH',
+        items: validOrderItems
+      };
+
+      sendOrderConfirmationEmail(order.email, String(order.id), emailData).catch(console.error);
+      sendAdminOrderReceivedEmail(String(order.id), emailData).catch(console.error);
 
       return res.redirect(`/checkout/success?payment_id=TEST_${paymentID}&trx_id=TEST_TRX_${Date.now()}&order_id=${order.id}&clear_cart=true`);
     }
@@ -166,6 +192,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             where: { userId: order.userId },
           });
         }
+
+        // Send Emails
+        const validOrderItems = order.orderItems.map((item: any) => ({
+            ...item,
+            productId: String(item.productId),
+            selectedOptions: item.selectedOptions 
+        }));
+
+        const emailData = {
+            customerName: order.customer,
+            email: order.email,
+            phone: order.phone,
+            city: order.city,
+            country: order.country,
+            address: order.address, 
+            house: order.house,
+            floor: order.floor,
+            notes: order.notes,
+            total: Number(order.total),
+            paymentMethod: 'ONLINE_BKASH',
+            items: validOrderItems
+        };
+
+        sendOrderConfirmationEmail(order.email, String(order.id), emailData).catch(console.error);
+        sendAdminOrderReceivedEmail(String(order.id), emailData).catch(console.error);
 
         return res.redirect(`/checkout/success?session_id=${executeData.paymentID}&order_id=${order.id}&clear_cart=true`);
       }

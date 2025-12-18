@@ -34,7 +34,7 @@ export default function CartPage() {
         ) : (
           <div className="space-y-4">
             {cart.map(item => (
-              <div key={item.id} className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-4 flex items-center gap-4`}>
+              <div key={`${item.id}-${JSON.stringify(item.selectedOptions || {})}`} className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-4 flex items-center gap-4`}>
                 <div className={`w-20 h-20 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg flex items-center justify-center overflow-hidden`}>
                   <img
                     src={getImageUrl(item.image) || '/placeholder.svg'}
@@ -51,7 +51,7 @@ export default function CartPage() {
                     <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {Object.entries(item.selectedOptions).map(([key, value]) => {
                         // Don't show image URLs if they were somehow saved as option values (though they shouldn't be)
-                        if (value.includes('http') || value.includes('/')) return null; 
+                        if (value.includes('http') || value.includes('/')) return null;
                         return <div key={key}>{key}: {value}</div>;
                       })}
                     </div>

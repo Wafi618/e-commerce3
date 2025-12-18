@@ -27,6 +27,8 @@ export default function Document() {
           type="text/javascript"
           src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
         />
+        <link rel="icon" href="/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
         <link rel="icon" href="/logo.svg" type="image/svg+xml" />
       </Head>
       <body>

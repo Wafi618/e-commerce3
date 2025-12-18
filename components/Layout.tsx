@@ -57,12 +57,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               {showBackButton ? (
-                <Link
-                  href="/"
-                  className={`${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+                <button
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      router.back();
+                    } else {
+                      router.push('/store');
+                    }
+                  }}
+                  className={`${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'} flex items-center gap-1`}
                 >
-                  ← Back to Shop
-                </Link>
+                  ← Back
+                </button>
               ) : (
                 <>
                   <a href="/" className="flex items-center">
@@ -114,10 +120,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
                           <History className="w-5 h-5" />
                           <span className="text-sm">My Orders</span>
                         </Link>
-                        <button onClick={() => setShowMessageModal(true)} className={`${darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} flex items-center space-x-1`}>
-                          <MessageSquare className="w-5 h-5" />
-                          <span className="text-sm">Messages</span>
-                        </button>
+                        {router.pathname !== '/' && (
+                          <button onClick={() => setShowMessageModal(true)} className={`${darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} flex items-center space-x-1`}>
+                            <MessageSquare className="w-5 h-5" />
+                            <span className="text-sm">Messages</span>
+                          </button>
+                        )}
                       </>
                     )}
                     {user.role === 'ADMIN' && (
@@ -138,14 +146,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
                   </button>
                 )}
 
-                <Link href="/cart" className="relative p-2">
-                  <ShoppingCart className={`w-6 h-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
-                  {cart.length > 0 && (
-                    <span className={`absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center ${isCartUpdated ? 'cart-updated' : ''}`}>
-                      {cart.reduce((count, item) => count + item.quantity, 0)}
-                    </span>
-                  )}
-                </Link>
+                {router.pathname !== '/' && (
+                  <Link href="/cart" className="relative p-2">
+                    <ShoppingCart className={`w-6 h-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+                    {cart.length > 0 && (
+                      <span className={`absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center ${isCartUpdated ? 'cart-updated' : ''}`}>
+                        {cart.reduce((count, item) => count + item.quantity, 0)}
+                      </span>
+                    )}
+                  </Link>
+                )}
               </div>
 
               {/* Mobile Menu Button */}
@@ -157,14 +167,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton 
                 >
                   {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
-                <Link href="/cart" className="relative p-2">
-                  <ShoppingCart className={`w-6 h-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
-                  {cart.length > 0 && (
-                    <span className={`absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center ${isCartUpdated ? 'cart-updated' : ''}`}>
-                      {cart.reduce((count, item) => count + item.quantity, 0)}
-                    </span>
-                  )}
-                </Link>
+                {router.pathname !== '/' && (
+                  <Link href="/cart" className="relative p-2">
+                    <ShoppingCart className={`w-6 h-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+                    {cart.length > 0 && (
+                      <span className={`absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center ${isCartUpdated ? 'cart-updated' : ''}`}>
+                        {cart.reduce((count, item) => count + item.quantity, 0)}
+                      </span>
+                    )}
+                  </Link>
+                )}
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                   className={`p-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}

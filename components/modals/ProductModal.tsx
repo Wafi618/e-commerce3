@@ -36,18 +36,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
   const [descriptionTab, setDescriptionTab] = useState<'write' | 'preview'>('write');
   const [uploading, setUploading] = useState(false);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (file: File, setUrl: (url: string) => void) => {
     setUploading(true);
-
-    // Convert to Base64
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
       const base64 = reader.result as string;
-
       try {
         const res = await fetch('/api/admin/upload-image', {
           method: 'POST',
@@ -55,7 +49,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
           body: JSON.stringify({ imageBase64: base64 }),
         });
         const data = await res.json();
-
         if (data.success) {
           setUrl(data.url);
         } else {
@@ -68,6 +61,43 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
         setUploading(false);
       }
     };
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file, setUrl);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent, setUrl: (url: string) => void) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) uploadFile(file, setUrl);
+        return;
+      }
+    }
+  };
+
+  const handlePasteClick = async (setUrl: (url: string) => void) => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        for (const type of item.types) {
+          if (type.startsWith('image/')) {
+            const blob = await item.getType(type);
+            const file = new File([blob], 'pasted-image.png', { type });
+            uploadFile(file, setUrl);
+            return;
+          }
+        }
+      }
+      alert('No image found in clipboard');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to read clipboard. Please try Ctrl+V instead.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -251,22 +281,36 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Main Product Image URL {formData.options && formData.options.length > 0 ? '(Optional if options have images)' : '*'}
               </label>
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Image (Auto-fills URL)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, (url) => setFormData({ ...formData, image: url }))}
-                  disabled={uploading}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Import File</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e, (url) => setFormData({ ...formData, image: url }))}
+                    disabled={uploading}
+                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Clipboard</label>
+                  <button
+                    type="button"
+                    onClick={() => handlePasteClick((url) => setFormData({ ...formData, image: url }))}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm font-medium flex items-center gap-2"
+                    title="Read image from clipboard"
+                  >
+                    Paste Image
+                  </button>
+                </div>
               </div>
               <input
                 type="text"
                 value={formData.image || ''}
                 onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                onPaste={(e) => handlePaste(e, (url) => setFormData({ ...formData, image: url }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="Paste image URL"
+                placeholder="Paste image URL (or Ctrl+V image to upload)"
                 required={!formData.options || formData.options.length === 0}
               />
               {formData.image && (
@@ -310,7 +354,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                 Add Option
               </button>
             </div>
-            
+
             {formData.options?.length === 0 && (
               <p className="text-sm text-gray-500 italic">No options added yet (e.g. Size, Color).</p>
             )}
@@ -356,9 +400,18 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                               type="text"
                               value={value.image || ''}
                               onChange={(e) => updateOptionValue(optIdx, valIdx, 'image', e.target.value)}
+                              onPaste={(e) => handlePaste(e, (url) => updateOptionValue(optIdx, valIdx, 'image', url))}
                               className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-xs text-gray-600"
-                              placeholder="Image URL (optional)"
+                              placeholder="Image URL (paste supported)"
                             />
+                            <button
+                              type="button"
+                              onClick={() => handlePasteClick((url) => updateOptionValue(optIdx, valIdx, 'image', url))}
+                              className="px-2 py-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200"
+                              title="Paste from Clipboard"
+                            >
+                              📋
+                            </button>
                             <label className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md text-xs cursor-pointer hover:bg-gray-300">
                               Upload
                               <input
@@ -370,9 +423,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                             </label>
                           </div>
                         </div>
-                         {value.image && (
-                            <img src={value.image} alt="val" className="w-10 h-10 rounded object-cover border" />
-                         )}
+                        {value.image && (
+                          <img src={value.image} alt="val" className="w-10 h-10 rounded object-cover border" />
+                        )}
                         <button
                           type="button"
                           onClick={() => removeOptionValue(optIdx, valIdx)}

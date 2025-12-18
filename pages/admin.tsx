@@ -7,6 +7,7 @@ import { AnalyticsTab } from '@/components/admin/AnalyticsTab';
 import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
 import { LandingTab } from '@/components/admin/LandingTab';
 import { DeepSeekChat } from '@/components/admin/DeepSeekChat';
+import { SettingsTab } from '@/components/admin/SettingsTab';
 import { Badge } from '@/components/ui/Badge';
 import { ProductModal } from '@/components/modals/ProductModal';
 import { OrderDetailsModal } from '@/components/modals/OrderDetailsModal';
@@ -141,7 +142,7 @@ export default function AdminPage() {
               <span className="text-xl font-bold text-white">Admin Dashboard</span>
             </div>
             <Link
-              href="/"
+              href="/store"
               className="text-blue-600 hover:text-blue-700"
             >
               View Storefront →
@@ -214,6 +215,13 @@ export default function AdminPage() {
               }`}
           >
             Landing Page
+          </button>
+          <button
+            onClick={() => setAdminTab('settings')}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${adminTab === 'settings' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              }`}
+          >
+            Settings
           </button>
         </div>
 
@@ -747,6 +755,13 @@ export default function AdminPage() {
         {adminTab === 'analytics' && <AnalyticsTab darkMode={darkMode} />}
         {adminTab === 'announcements' && <AnnouncementsTab darkMode={darkMode} />}
         {adminTab === 'landing' && <LandingTab />}
+
+        {adminTab === 'settings' && (
+          <div className="bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-2xl font-bold text-white mb-6">System Settings</h2>
+            <SettingsTab />
+          </div>
+        )}
       </div>
 
       {showProductModal && (

@@ -35,19 +35,15 @@ export const Features = () => {
                     {features.map((feature, index) => (
                         <div
                             key={index}
-                            className={`p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${darkMode
-                                ? 'bg-gray-900 border-gray-700 hover:border-blue-500/50 hover:shadow-blue-900/20'
-                                : 'bg-gray-50 border-gray-200 hover:border-blue-200 hover:shadow-blue-100'
-                                }`}
+                            className={`tron-card p-6 flex flex-col items-center text-center`}
                         >
-                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-4 ${darkMode ? 'bg-gray-800' : 'bg-white shadow-sm'
-                                }`}>
+                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center mb-4 bg-gray-50 dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-white/5`}>
                                 {feature.icon}
                             </div>
-                            <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                            <h3 className={`text-lg font-bold mb-2 text-black dark:text-white`}>
                                 {feature.title}
                             </h3>
-                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <p className={`text-sm text-gray-600 dark:text-gray-400`}>
                                 {feature.description}
                             </p>
                         </div>

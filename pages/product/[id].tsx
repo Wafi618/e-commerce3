@@ -73,7 +73,7 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
       if (initialData.product.options && initialData.product.options.length > 0) {
         initialData.product.options.forEach(opt => {
           // Check if this option contains the pre-selected variant value
-          const preSelectedValue = preSelectedVariantId 
+          const preSelectedValue = preSelectedVariantId
             ? opt.values.find(val => val.id === preSelectedVariantId)
             : null;
 
@@ -92,7 +92,7 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
 
       // Fallback logic if main image is missing and no variant image was selected
       if (!variantImageFound && (!initialImage || initialImage.trim() === '')) {
-        const optionWithImage = initialData.product.options?.find(opt => 
+        const optionWithImage = initialData.product.options?.find(opt =>
           opt.values.some(val => val.image && val.image.trim() !== '')
         );
         if (optionWithImage) {
@@ -102,7 +102,7 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
           }
         }
       }
-      
+
       setSelectedImage(initialImage);
     }
   }, [initialData, preSelectedVariantId]);
@@ -130,7 +130,7 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
             <span>{error || 'Product not found'}</span>
           </div>
           <Link
-            href="/"
+            href="/store"
             className={`mt-4 inline-flex items-center gap-2 ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
           >
             <ArrowLeft className="w-4 h-4" />
@@ -215,13 +215,19 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
         <ParticlesBackground darkMode={darkMode} />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back Button */}
-          <Link
-            href="/"
+          <button
+            onClick={() => {
+              if (window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/store');
+              }
+            }}
             className={`inline-flex items-center gap-2 mb-6 ${darkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Shop
-          </Link>
+            Back
+          </button>
 
           {/* Product Details */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
@@ -312,17 +318,16 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
                       <button
                         key={value.id}
                         onClick={() => handleOptionChange(option.name, value.name, value.image)}
-                        className={`px-4 py-2 rounded-md border transition-all flex items-center gap-2 ${
-                          selectedOptions[option.name] === value.name
-                            ? 'border-blue-600 ring-2 ring-blue-600 ring-opacity-50'
-                            : darkMode ? 'border-gray-700 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'
-                        } ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
+                        className={`px-4 py-2 rounded-md border transition-all flex items-center gap-2 ${selectedOptions[option.name] === value.name
+                          ? 'border-blue-600 ring-2 ring-blue-600 ring-opacity-50'
+                          : darkMode ? 'border-gray-700 hover:border-gray-500' : 'border-gray-300 hover:border-gray-400'
+                          } ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}
                       >
                         {value.image && (
-                          <img 
-                            src={getImageUrl(value.image)} 
-                            alt={value.name} 
-                            className="w-6 h-6 rounded object-cover" 
+                          <img
+                            src={getImageUrl(value.image)}
+                            alt={value.name}
+                            className="w-6 h-6 rounded object-cover"
                           />
                         )}
                         {value.name}
@@ -569,7 +574,7 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { id } = context.params as { id: string };
-  
+
   // Parse ID which might be in format "productId-variantId"
   const [productIdStr, preSelectedVariantId] = id.split('-');
   const productId = parseInt(productIdStr);

@@ -3,7 +3,7 @@ import { CreateOrderInput, OrderFilter } from '@/types/service';
 import { sendDiscordNotification } from '@/utils/discord';
 import { sendTelegramNotification } from '@/utils/telegram';
 import { Prisma, OrderStatus } from '@prisma/client';
-import { sendOrderConfirmationEmail } from '@/lib/services/emailService';
+import { sendOrderConfirmationEmail, sendAdminOrderReceivedEmail } from '@/lib/services/emailService';
 import Decimal from 'decimal.js';
 
 // Define the type for the order with includes
@@ -146,6 +146,7 @@ export class OrderService {
     // Notifications (Fire and forget)
     this.sendNotifications(String(orderId), input).catch(console.error);
     sendOrderConfirmationEmail(input.email, String(orderId), input).catch(console.error);
+    sendAdminOrderReceivedEmail(String(orderId), input).catch(console.error);
 
     return orderId;
   }
