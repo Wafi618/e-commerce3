@@ -36,6 +36,7 @@ export interface ProductFilter {
   subcategory?: string;
   search?: string;
   isAdmin?: boolean;
+  latest?: boolean;
 }
 
 export interface CreateProductInput {
@@ -55,4 +56,25 @@ export interface CreateProductInput {
       image?: string;
     }[];
   }[];
+}
+
+export interface UpdateProductInput {
+  id: number;
+  name?: string;
+  price?: number;
+  image?: string;
+  images?: string[];
+  stock?: number;
+  category?: string;
+  subcategory?: string | null;
+  description?: string | null;
+  isArchived?: boolean;
+  options?: {
+    name: string;
+    values: {
+      name: string;
+      image?: string;
+    }[];
+  }[];
+  replaceOptions?: boolean;
 }

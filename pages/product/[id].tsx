@@ -141,8 +141,20 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
     );
   }
 
+
   const { product, similarProducts } = initialData;
   const allImages = [product.image, ...(product.images || [])].filter(Boolean);
+
+  // Helper to determine rotation for a given image URL
+  const getRotation = (url: string) => {
+    if (url === product.image) return (product as any).imageRotation || 0;
+    // Check if it matches an option value image
+    for (const opt of product.options || []) {
+      const val = opt.values.find(v => v.image === url);
+      if (val) return (val as any).rotation || 0;
+    }
+    return 0;
+  };
 
   const handleAddToCart = () => {
     // Check if all options are selected
@@ -242,6 +254,7 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
                   src={getImageUrl(selectedImage) || '/placeholder.svg'}
                   alt={product.name}
                   className="w-full h-96 object-cover transition-transform duration-300 group-hover:scale-105"
+                  style={{ transform: `rotate(${getRotation(selectedImage)}deg)` }}
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder.svg';
                   }}
@@ -271,7 +284,8 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
                       <img
                         src={getImageUrl(img) || '/placeholder.svg'}
                         alt={`${product.name} ${idx + 1}`}
-                        className="w-full h-20 object-cover"
+                        className="w-full h-20 object-cover transition-transform duration-300"
+                        style={{ transform: `rotate(${getRotation(img)}deg)` }}
                         onError={(e) => {
                           e.currentTarget.src = '/placeholder.svg';
                         }}
@@ -327,7 +341,8 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
                           <img
                             src={getImageUrl(value.image)}
                             alt={value.name}
-                            className="w-6 h-6 rounded object-cover"
+                            className="w-6 h-6 rounded object-cover transition-transform duration-300"
+                            style={{ transform: `rotate(${(value as any).rotation || 0}deg)` }}
                           />
                         )}
                         {value.name}
@@ -547,7 +562,8 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
             <img
               src={getImageUrl(selectedImage)}
               alt={product.name}
-              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-transform duration-300"
+              style={{ transform: `rotate(${getRotation(selectedImage)}deg)` }}
             />
 
             {allImages.length > 1 && (

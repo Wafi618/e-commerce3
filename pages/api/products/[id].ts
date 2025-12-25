@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { productSchema } from '@/lib/schemas';
 
+import { getServerSession } from 'next-auth/next';
+import { getAuthOptions } from '../auth/[...nextauth]';
 
 export default async function handler(
   req: NextApiRequest,
@@ -67,6 +69,12 @@ export default async function handler(
         },
       });
     } else if (req.method === 'PUT') {
+      // Check permission
+      const session = await getServerSession(req, res, getAuthOptions(req, res));
+      if (session?.user?.role !== 'ADMIN') {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
       // Validate partial update
       const partialProductSchema = productSchema.partial();
       const result = partialProductSchema.safeParse(req.body);
@@ -123,11 +131,11 @@ export default async function handler(
         where: { id: productId },
         data: updateData,
         include: {
-            options: {
-                include: {
-                    values: true
-                }
+          options: {
+            include: {
+              values: true
             }
+          }
         }
       });
 
@@ -136,6 +144,12 @@ export default async function handler(
         data: updatedProduct,
       });
     } else if (req.method === 'DELETE') {
+      // Check permission
+      const session = await getServerSession(req, res, getAuthOptions(req, res));
+      if (session?.user?.role !== 'ADMIN') {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
       // DELETE /api/products/[id] - Delete a product
       const existingProduct = await prisma.product.findUnique({
         where: { id: productId },

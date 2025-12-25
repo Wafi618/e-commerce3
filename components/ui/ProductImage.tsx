@@ -9,43 +9,44 @@ interface ProductImageProps {
     options?: any[];
     onImageChange?: (imageUrl: string) => void;
     disableSlideshow?: boolean;
+    imageRotation?: number;
 }
 
 
-export const ProductImage: React.FC<ProductImageProps> = ({ src, alt, className, options, onImageChange, disableSlideshow }) => {
+export const ProductImage: React.FC<ProductImageProps> = ({ src, alt, className, options, onImageChange, disableSlideshow, imageRotation = 0 }) => {
     const [transform, setTransform] = useState('scale(1) translate(0, 0)');
     const [currentImage, setCurrentImage] = useState(src);
-    const [slideshowImages, setSlideshowImages] = useState<string[]>([]);
+    const [slideshowImages, setSlideshowImages] = useState<{ src: string, rotation: number }[]>([]);
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
-    const slideshowIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const slideshowIntervalRef = useRef<NodeJS.Timeout | number | null>(null);
     const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastReportedImageRef = useRef<string | null>(null);
 
     // Initialize slideshow images
     useEffect(() => {
-        const images: string[] = [];
+        const images: { src: string, rotation: number }[] = [];
 
         // Always include the main image first if it exists
         if (src && src.trim() !== '') {
-            images.push(src);
+            images.push({ src, rotation: imageRotation });
         }
 
         // Add option images
         options?.forEach(opt => {
             opt.values?.forEach((val: any) => {
-                if (val.image && val.image.trim() !== '' && !images.includes(val.image)) {
-                    images.push(val.image);
+                if (val.image && val.image.trim() !== '' && !images.some(img => img.src === val.image)) {
+                    images.push({ src: val.image, rotation: val.rotation || 0 });
                 }
             });
         });
 
         if (images.length === 0) {
-            images.push('/placeholder.svg');
+            images.push({ src: '/placeholder.svg', rotation: 0 });
         }
 
         setSlideshowImages(images);
-    }, [src, options]);
+    }, [src, options, imageRotation]);
 
     // Handle slideshow auto-play
     useEffect(() => {
@@ -57,19 +58,19 @@ export const ProductImage: React.FC<ProductImageProps> = ({ src, alt, className,
 
         return () => {
             if (slideshowIntervalRef.current) {
-                clearInterval(slideshowIntervalRef.current);
+                clearInterval(slideshowIntervalRef.current as any);
             }
         };
     }, [slideshowImages, disableSlideshow]);
 
     // Notify parent of image change - Fix for infinite loop
     useEffect(() => {
-        const currentImg = slideshowImages[currentSlideIndex];
-        if (onImageChange && slideshowImages.length > 0 && currentImg) {
+        const currentImgObj = slideshowImages[currentSlideIndex];
+        if (onImageChange && slideshowImages.length > 0 && currentImgObj) {
             // Only report if the image has actually changed from what we last reported
-            if (lastReportedImageRef.current !== currentImg) {
-                lastReportedImageRef.current = currentImg;
-                onImageChange(currentImg);
+            if (lastReportedImageRef.current !== currentImgObj.src) {
+                lastReportedImageRef.current = currentImgObj.src;
+                onImageChange(currentImgObj.src);
             }
         }
     }, [currentSlideIndex, slideshowImages, onImageChange]);
@@ -101,18 +102,19 @@ export const ProductImage: React.FC<ProductImageProps> = ({ src, alt, className,
                 className="w-full h-full relative"
                 style={{ transform, transition: 'transform 0.2s ease-out' }}
             >
-                {slideshowImages.map((imgSrc, idx) => (
+                {slideshowImages.map((imgObj, idx) => (
                     <div
-                        key={`${imgSrc}-${idx}`}
+                        key={`${imgObj.src}-${idx}`}
                         className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${idx === currentSlideIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
                             }`}
                     >
                         <Image
-                            src={getImageUrl(imgSrc) || '/placeholder.svg'}
+                            src={getImageUrl(imgObj.src) || '/placeholder.svg'}
                             alt={`${alt} - view ${idx + 1}`}
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-contain"
+                            className="object-contain transition-transform duration-300"
+                            style={{ transform: `rotate(${imgObj.rotation}deg)` }}
                             priority={idx === 0}
                         />
                     </div>

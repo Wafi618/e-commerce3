@@ -33,7 +33,7 @@ export default async function handler(
       const cart = cartItems.map(item => {
         // Determine correct image
         let image = item.product.image;
-        
+
         // 1. Check if selected options have an image
         if (item.selectedOptions) {
           const selectedOpts = item.selectedOptions as Record<string, string>;
@@ -51,13 +51,13 @@ export default async function handler(
 
         // 2. Fallback: Check if main image is empty, then use ANY option image
         if (!image || image.trim() === '') {
-           const fallbackOption = item.product.options.find(o => o.values.some(v => v.image && v.image.trim() !== ''));
-           if (fallbackOption) {
-             const fallbackValue = fallbackOption.values.find(v => v.image && v.image.trim() !== '');
-             if (fallbackValue) {
-               image = fallbackValue.image || '';
-             }
-           }
+          const fallbackOption = item.product.options.find(o => o.values.some(v => v.image && v.image.trim() !== ''));
+          if (fallbackOption) {
+            const fallbackValue = fallbackOption.values.find(v => v.image && v.image.trim() !== '');
+            if (fallbackValue) {
+              image = fallbackValue.image || '';
+            }
+          }
         }
 
         return {
@@ -69,6 +69,7 @@ export default async function handler(
           category: item.product.category,
           quantity: item.quantity,
           selectedOptions: item.selectedOptions,
+          imageRotation: (image === item.product.image ? (item.product as any).imageRotation : (item.product as any).options?.flatMap((o: any) => o.values).find((v: any) => v.image === image)?.rotation) || 0,
         };
       });
 

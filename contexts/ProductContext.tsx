@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { useUI } from './UIContext';
+import { toast } from 'react-hot-toast';
 
 /**
  * Product Interface
@@ -177,10 +178,10 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
         setShowProductModal(false);
         setEditingProduct(null);
       } else {
-        alert(data.error || 'Failed to save product');
+        toast.error(data.error || 'Failed to save product');
       }
     } catch (err) {
-      alert('Network error. Failed to save product.');
+      toast.error('Network error. Failed to save product.');
       console.error('Save error:', err);
     } finally {
       setLoading(false);
@@ -205,10 +206,10 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
       if (data.success) {
         await fetchProducts();
       } else {
-        alert(data.error || 'Failed to delete product');
+        toast.error(data.error || 'Failed to delete product');
       }
     } catch (err) {
-      alert('Network error. Failed to delete product.');
+      toast.error('Network error. Failed to delete product.');
       console.error('Delete error:', err);
     } finally {
       setLoading(false);

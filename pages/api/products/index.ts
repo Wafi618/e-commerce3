@@ -29,6 +29,12 @@ export default async function handler(
         data: products,
       });
     } else if (req.method === 'POST') {
+      // Check permission
+      const session = await getServerSession(req, res, getAuthOptions(req, res));
+      if (session?.user?.role !== 'ADMIN') {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
       // Zod Validation
       const result = productSchema.safeParse(req.body);
 

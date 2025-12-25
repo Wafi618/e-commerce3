@@ -34,8 +34,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             where,
             orderBy: isAdmin ? [
                 { isArchived: 'asc' },
+                { sortOrder: 'asc' },
                 { createdAt: 'desc' }
-            ] : { createdAt: 'desc' },
+            ] as any : [
+                { sortOrder: 'asc' },
+                { createdAt: 'desc' }
+            ] as any,
             include: {
                 options: {
                     include: {
@@ -231,6 +235,7 @@ export default function StorePage({ products: initialProducts }: any) {
                                                 options={(product as any).options}
                                                 onImageChange={(img) => handleImageChange(product.id, img)}
                                                 disableSlideshow={!!searchQuery}
+                                                imageRotation={(product as any).imageRotation || 0}
                                             />
                                         </div>
                                     </Link>

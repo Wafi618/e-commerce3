@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
+import { calculateShippingCost } from '@/lib/services/shippingService';
 
-/**
- * Cart Item Interface
- */
 interface CartItem {
   id: string | number;
   name: string;
@@ -27,6 +25,9 @@ interface AddressData {
   house: string;
   floor: string;
   notes: string;
+  lat?: number;
+  lng?: number;
+  useMapAddress?: boolean;
 }
 
 /**
@@ -52,6 +53,7 @@ interface CartContextValue {
   mergeGuestCartWithUserCart: (guestCart: CartItem[]) => Promise<void>;
   cartTotal: number;
   reorder: (order: any, products: any[]) => void;
+  shippingCost: number;
 }
 
 interface CartProviderProps {
@@ -96,7 +98,12 @@ export function CartProvider({ children }: CartProviderProps) {
     house: '',
     floor: '',
     notes: '',
+    lat: undefined,
+    lng: undefined,
+    useMapAddress: false,
   });
+
+  const [shippingCost, setShippingCost] = useState(60); // Default 60 (Taka)
 
   /**
    * Loads cart from localStorage on mount (for guest users)
@@ -137,6 +144,22 @@ export function CartProvider({ children }: CartProviderProps) {
       }
     }
   }, [cart, user]);
+
+  /**
+   * Recalculate Shipping Cost when Address Updates
+   */
+  useEffect(() => {
+    const calcShipping = async () => {
+      if (addressData.address && addressData.city) {
+        const fullAddress = `${addressData.address}, ${addressData.city}, ${addressData.country}`;
+        const cost = await calculateShippingCost(fullAddress, addressData.lat, addressData.lng);
+        setShippingCost(cost);
+      }
+    };
+
+    const timeoutId = setTimeout(calcShipping, 1000); // Debounce 1s
+    return () => clearTimeout(timeoutId);
+  }, [addressData.address, addressData.city, addressData.country, addressData.lat, addressData.lng]);
 
   /**
    * Load cart from backend when user is authenticated on mount
@@ -201,8 +224,27 @@ export function CartProvider({ children }: CartProviderProps) {
       }
     };
 
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'shopping_cart') {
+        if (e.newValue) {
+          try {
+            setCart(JSON.parse(e.newValue));
+          } catch (err) {
+            console.error('Error parsing cart from storage event:', err);
+          }
+        } else {
+          setCart([]);
+        }
+      }
+    };
+
     window.addEventListener('cart-cleared', handleCartCleared);
-    return () => window.removeEventListener('cart-cleared', handleCartCleared);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('cart-cleared', handleCartCleared);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [user]);
 
   /**
@@ -264,15 +306,15 @@ export function CartProvider({ children }: CartProviderProps) {
 
     // Fallback if main image is empty and no option image found
     if (!cartImage || cartImage.trim() === '') {
-        // Try to find ANY option image
-        const anyOptionImage = product.options?.find((o: any) => o.values.find((v: any) => v.image))?.values.find((v: any) => v.image)?.image;
-        if (anyOptionImage) {
-            cartImage = anyOptionImage;
-        }
+      // Try to find ANY option image
+      const anyOptionImage = product.options?.find((o: any) => o.values.find((v: any) => v.image))?.values.find((v: any) => v.image)?.image;
+      if (anyOptionImage) {
+        cartImage = anyOptionImage;
+      }
     }
 
     setCart(prevCart => {
-      const existingItemIndex = prevCart.findIndex(item => 
+      const existingItemIndex = prevCart.findIndex(item =>
         item.id === product.id && areOptionsEqual(item.selectedOptions, product.selectedOptions)
       );
 
@@ -280,10 +322,10 @@ export function CartProvider({ children }: CartProviderProps) {
         // Item exists
         const existingItem = prevCart[existingItemIndex];
         if (existingItem.quantity + quantity > product.stock) {
-           addNotification(`Cannot add ${quantity} more. Only ${product.stock} items available in stock.`, 'warning');
-           return prevCart;
+          addNotification(`Cannot add ${quantity} more. Only ${product.stock} items available in stock.`, 'warning');
+          return prevCart;
         }
-        
+
         const newCart = [...prevCart];
         newCart[existingItemIndex] = {
           ...existingItem,
@@ -293,14 +335,14 @@ export function CartProvider({ children }: CartProviderProps) {
       } else {
         // New item
         if (quantity > product.stock) {
-           addNotification(`Cannot add ${quantity} items. Only ${product.stock} items available in stock.`, 'warning');
-           return prevCart;
+          addNotification(`Cannot add ${quantity} items. Only ${product.stock} items available in stock.`, 'warning');
+          return prevCart;
         }
-        
-        return [...prevCart, { 
-          ...product, 
+
+        return [...prevCart, {
+          ...product,
           quantity: quantity,
-          image: cartImage 
+          image: cartImage
         }];
       }
     });
@@ -380,7 +422,8 @@ export function CartProvider({ children }: CartProviderProps) {
     setShowAddressModal(false);
 
     try {
-      const total = cart.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
+      const subTotal = cart.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
+      const total = subTotal + shippingCost;
       const invoiceNumber = `INV-${Date.now()}`;
 
       // Store cart items and address temporarily for the callback
@@ -399,6 +442,7 @@ export function CartProvider({ children }: CartProviderProps) {
           customerEmail: user?.email || '',
           customerName: user?.name || 'Guest',
           userId: user?.id || null,
+          shippingCost: shippingCost,
           ...addressData,
         }),
       });
@@ -436,11 +480,12 @@ export function CartProvider({ children }: CartProviderProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: cartTotal,
+          amount: cartTotal + shippingCost,
           cartItems: cart,
           customerEmail: user?.email || '',
           customerName: user?.name || 'Guest',
           userId: user?.id || null,
+          shippingCost: shippingCost,
           ...addressData,
           bkashNumber,
           trxId,
@@ -479,7 +524,7 @@ export function CartProvider({ children }: CartProviderProps) {
         const mergedCart = [...userCart];
 
         guestCart.forEach(guestItem => {
-          const existingItem = mergedCart.find(item => 
+          const existingItem = mergedCart.find(item =>
             item.id === guestItem.id && areOptionsEqual(item.selectedOptions, guestItem.selectedOptions)
           );
           if (existingItem) {
@@ -525,19 +570,19 @@ export function CartProvider({ children }: CartProviderProps) {
 
       if (product) {
         if (product.stock >= orderItem.quantity) {
-          const existingCartItem = newCart.find(item => 
+          const existingCartItem = newCart.find(item =>
             item.id === product.id && areOptionsEqual(item.selectedOptions, orderItem.selectedOptions)
           );
           if (existingCartItem) {
             existingCartItem.quantity += orderItem.quantity;
             if (existingCartItem.quantity > product.stock) {
-                existingCartItem.quantity = product.stock;
+              existingCartItem.quantity = product.stock;
             }
           } else {
-            newCart.push({ 
-              ...product, 
+            newCart.push({
+              ...product,
               quantity: orderItem.quantity,
-              selectedOptions: orderItem.selectedOptions 
+              selectedOptions: orderItem.selectedOptions
             });
           }
           itemsAdded++;
@@ -594,6 +639,7 @@ export function CartProvider({ children }: CartProviderProps) {
     mergeGuestCartWithUserCart,
     cartTotal,
     reorder,
+    shippingCost,
   };
 
   return (

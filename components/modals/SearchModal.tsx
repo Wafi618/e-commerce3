@@ -74,7 +74,8 @@ export const SearchModal: React.FC = () => {
                   <img
                     src={getImageUrl(product.image)}
                     alt={product.name}
-                    className="w-12 h-12 object-cover rounded"
+                    className="w-12 h-12 object-cover rounded transition-transform duration-300"
+                    style={{ transform: `rotate(${(product as any).imageRotation || 0}deg)` }}
                   />
                   <div className="flex-1">
                     <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>

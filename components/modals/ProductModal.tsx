@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Eye, FileText, Plus, Trash2, X } from 'lucide-react';
+import { Eye, FileText, Plus, Trash2, X, RotateCcw } from 'lucide-react';
 import { useProduct } from '@/contexts/ProductContext';
 
 interface ProductModalProps {
@@ -23,7 +23,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
     image: '',
     images: [],
     description: '',
-    options: []
+    options: [],
+    imageRotation: 0,
+    imagesMetadata: {}
   });
 
   // Derive subcategories for the selected category
@@ -132,10 +134,32 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
       stock: parseInt(formData.stock),
       subcategory: formData.subcategory || null,
       images: Array.isArray(formData.images) ? formData.images : [],
-      options: formData.options || []
+      options: formData.options || [],
+      imageRotation: formData.imageRotation || 0
     };
 
     onSave(productData);
+  };
+
+  const rotateMainImage = () => {
+    setFormData({ ...formData, imageRotation: ((formData.imageRotation || 0) + 90) % 360 });
+  };
+
+  const resetMainImageRotation = () => {
+    setFormData({ ...formData, imageRotation: 0 });
+  };
+
+  const rotateOptionValueImage = (optionIndex: number, valueIndex: number) => {
+    const newOptions = [...(formData.options || [])];
+    const currentRotation = newOptions[optionIndex].values[valueIndex].rotation || 0;
+    newOptions[optionIndex].values[valueIndex].rotation = (currentRotation + 90) % 360;
+    setFormData({ ...formData, options: newOptions });
+  };
+
+  const resetOptionValueRotation = (optionIndex: number, valueIndex: number) => {
+    const newOptions = [...(formData.options || [])];
+    newOptions[optionIndex].values[valueIndex].rotation = 0;
+    setFormData({ ...formData, options: newOptions });
   };
 
   const addOption = () => {
@@ -314,13 +338,32 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                 required={!formData.options || formData.options.length === 0}
               />
               {formData.image && (
-                <div className="mt-2">
-                  <img
-                    src={formData.image.includes('src="') ? formData.image.match(/src="([^"]+)"/)?.[1] : formData.image}
-                    alt="Preview"
-                    className="w-32 h-32 object-cover rounded-lg border"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
+                <div className="mt-2 flex items-start gap-2">
+                  <div className="relative group">
+                    <img
+                      src={formData.image.includes('src="') ? formData.image.match(/src="([^"]+)"/)?.[1] : formData.image}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-lg border transition-transform duration-300"
+                      style={{ transform: `rotate(${formData.imageRotation || 0}deg)` }}
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <button
+                      type="button"
+                      onClick={rotateMainImage}
+                      className="absolute bottom-1 right-8 p-1 bg-white/80 rounded-full shadow hover:bg-white text-gray-700"
+                      title="Rotate 90°"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetMainImageRotation}
+                      className="absolute bottom-1 right-1 p-1 bg-white/80 rounded-full shadow hover:bg-white text-gray-700 font-bold text-xs"
+                      title="Reset Rotation"
+                    >
+                      ↺
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -424,7 +467,30 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                           </div>
                         </div>
                         {value.image && (
-                          <img src={value.image} alt="val" className="w-10 h-10 rounded object-cover border" />
+                          <div className="relative shrink-0">
+                            <img
+                              src={value.image}
+                              alt="val"
+                              className="w-10 h-10 rounded object-cover border transition-transform duration-300"
+                              style={{ transform: `rotate(${value.rotation || 0}deg)` }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => rotateOptionValueImage(optIdx, valIdx)}
+                              className="absolute -bottom-1 -left-1 p-0.5 bg-white/90 rounded-full shadow hover:bg-white text-gray-600 border border-gray-200"
+                              title="Rotate"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => resetOptionValueRotation(optIdx, valIdx)}
+                              className="absolute -bottom-1 -right-1 p-0.5 bg-white/90 rounded-full shadow hover:bg-white text-gray-600 border border-gray-200 text-[10px] font-bold"
+                              title="Reset Rotation"
+                            >
+                              ↺
+                            </button>
+                          </div>
                         )}
                         <button
                           type="button"
@@ -505,7 +571,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
             <button
               type="button"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || uploading}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50 bg-white"
             >
               Cancel
@@ -520,7 +586,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
                   form.dispatchEvent(event);
                 }
               }}
-              disabled={loading}
+              disabled={loading || uploading}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
             >
               {loading ? (
@@ -532,6 +598,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onSave, onC
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCart, useTheme } from '@/contexts';
 import { Check } from 'lucide-react';
+import LocationPicker from '../common/LocationPicker';
 
 export const AddressModal: React.FC = () => {
   // Consume contexts directly
@@ -12,6 +13,7 @@ export const AddressModal: React.FC = () => {
     handleManualPaymentSubmit,
     checkoutLoading,
     cartTotal,
+    shippingCost,
   } = useCart();
 
   const { darkMode } = useTheme(); // Get dark mode state
@@ -102,8 +104,8 @@ export const AddressModal: React.FC = () => {
             <select
               onChange={handleAddressSelect}
               className={`w-full px-3 py-2 border rounded-lg ${darkMode
-                  ? 'bg-gray-700 border-gray-600 text-white'
-                  : 'bg-white border-gray-300 text-gray-900'
+                ? 'bg-gray-700 border-gray-600 text-white'
+                : 'bg-white border-gray-300 text-gray-900'
                 }`}
             >
               <option value="">-- Select Address --</option>
@@ -115,6 +117,47 @@ export const AddressModal: React.FC = () => {
             </select>
           </div>
         )}
+
+        {/* Map Location Picker */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Pin your Location (For Precise Shipping) | ম্যাপে আপনার লোকেশন পিন করুন
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={addressData.useMapAddress || false}
+                onChange={(e) => setAddressData({ ...addressData, useMapAddress: e.target.checked })}
+                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              />
+              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Use address from map
+              </span>
+            </label>
+          </div>
+
+          <LocationPicker
+            initialLat={addressData.lat}
+            initialLng={addressData.lng}
+            onLocationSelect={(lat, lng, address) => {
+              const updates: any = {
+                ...addressData,
+                lat,
+                lng
+              };
+
+              // Only update text address if checkbox is checked
+              if (addressData.useMapAddress) {
+                updates.address = address || addressData.address;
+                // Optional: Parse city/country if needed, but for now just street address
+              }
+
+              setAddressData(updates);
+            }}
+          />
+        </div>
 
         <div className="space-y-4">
           {/* Phone */}
@@ -130,8 +173,8 @@ export const AddressModal: React.FC = () => {
               value={addressData.phone}
               readOnly
               className={`w-full px-3 py-2 border rounded-lg ${darkMode
-                  ? 'border-gray-600 bg-gray-700 text-gray-400'
-                  : 'border-gray-300 bg-gray-100 text-gray-600'
+                ? 'border-gray-600 bg-gray-700 text-gray-400'
+                : 'border-gray-300 bg-gray-100 text-gray-600'
                 }`}
               placeholder="+880 1234 567890"
             />
@@ -151,8 +194,8 @@ export const AddressModal: React.FC = () => {
                 value={addressData.city}
                 readOnly
                 className={`w-full px-3 py-2 border rounded-lg ${darkMode
-                    ? 'border-gray-600 bg-gray-700 text-gray-400'
-                    : 'border-gray-300 bg-gray-100 text-gray-600'
+                  ? 'border-gray-600 bg-gray-700 text-gray-400'
+                  : 'border-gray-300 bg-gray-100 text-gray-600'
                   }`}
                 placeholder="Dhaka"
               />
@@ -171,8 +214,8 @@ export const AddressModal: React.FC = () => {
                 value={addressData.country}
                 readOnly
                 className={`w-full px-3 py-2 border rounded-lg ${darkMode
-                    ? 'border-gray-600 bg-gray-700 text-gray-400'
-                    : 'border-gray-300 bg-gray-100 text-gray-600'
+                  ? 'border-gray-600 bg-gray-700 text-gray-400'
+                  : 'border-gray-300 bg-gray-100 text-gray-600'
                   }`}
                 placeholder="Bangladesh"
               />
@@ -192,8 +235,8 @@ export const AddressModal: React.FC = () => {
               value={addressData.address}
               readOnly
               className={`w-full px-3 py-2 border rounded-lg ${darkMode
-                  ? 'border-gray-600 bg-gray-700 text-gray-400'
-                  : 'border-gray-300 bg-gray-100 text-gray-600'
+                ? 'border-gray-600 bg-gray-700 text-gray-400'
+                : 'border-gray-300 bg-gray-100 text-gray-600'
                 }`}
               placeholder="Road 12, Banani"
             />
@@ -213,8 +256,8 @@ export const AddressModal: React.FC = () => {
                 value={addressData.house}
                 readOnly
                 className={`w-full px-3 py-2 border rounded-lg ${darkMode
-                    ? 'border-gray-600 bg-gray-700 text-gray-400'
-                    : 'border-gray-300 bg-gray-100 text-gray-600'
+                  ? 'border-gray-600 bg-gray-700 text-gray-400'
+                  : 'border-gray-300 bg-gray-100 text-gray-600'
                   }`}
                 placeholder="House #25"
               />
@@ -232,8 +275,8 @@ export const AddressModal: React.FC = () => {
                 value={addressData.floor}
                 readOnly
                 className={`w-full px-3 py-2 border rounded-lg ${darkMode
-                    ? 'border-gray-600 bg-gray-700 text-gray-400'
-                    : 'border-gray-300 bg-gray-100 text-gray-600'
+                  ? 'border-gray-600 bg-gray-700 text-gray-400'
+                  : 'border-gray-300 bg-gray-100 text-gray-600'
                   }`}
                 placeholder="3rd Floor, Apt 5B"
               />
@@ -254,8 +297,8 @@ export const AddressModal: React.FC = () => {
                 setAddressData({ ...addressData, notes: e.target.value })
               }
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${darkMode
-                  ? 'bg-gray-700 border-gray-600'
-                  : 'border-gray-300 bg-white'
+                ? 'bg-gray-700 border-gray-600'
+                : 'border-gray-300 bg-white'
                 }`}
               placeholder="Delivery instructions, landmarks, etc."
               rows={3}
@@ -268,8 +311,8 @@ export const AddressModal: React.FC = () => {
               type="button"
               onClick={() => setShowAddressModal(false)}
               className={`flex-1 px-4 py-2 border rounded-lg ${darkMode
-                  ? 'border-gray-600 hover:bg-gray-700 text-gray-300'
-                  : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+                ? 'border-gray-600 hover:bg-gray-700 text-gray-300'
+                : 'border-gray-300 hover:bg-gray-50 text-gray-700'
                 }`}
             >
               Cancel | বাতিল
@@ -283,6 +326,26 @@ export const AddressModal: React.FC = () => {
             >
               Proceed to Payment (Under Construction)
             </button>
+          </div>
+
+
+          {/* --- ORDER SUMMARY --- */}
+          <div className={`mt-6 p-4 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+            <h4 className={`font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Order Summary</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Subtotal</span>
+                <span className={darkMode ? 'text-white' : 'text-gray-900'}>৳{cartTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Shipping Cost</span>
+                <span className={darkMode ? 'text-white' : 'text-gray-900'}>৳{shippingCost.toFixed(2)}</span>
+              </div>
+              <div className={`flex justify-between font-bold pt-2 border-t ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                <span className={darkMode ? 'text-white' : 'text-gray-900'}>Total Payable</span>
+                <span className="text-blue-600">৳{(cartTotal + shippingCost).toFixed(2)}</span>
+              </div>
+            </div>
           </div>
 
           {/* --- MANUAL PAYMENT SECTION --- */}
@@ -308,7 +371,7 @@ export const AddressModal: React.FC = () => {
                 <span>
                   2. Send the exact amount:{' '}
                   <strong className="text-lg">
-                    ৳{Number(cartTotal).toFixed(2)}
+                    ৳{(Number(cartTotal) + shippingCost).toFixed(2)}
                   </strong>
                 </span>
                 <br />
@@ -337,8 +400,8 @@ export const AddressModal: React.FC = () => {
                   value={bkashNumber}
                   onChange={(e) => setBkashNumber(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${darkMode
-                      ? 'bg-gray-700 border-gray-600'
-                      : 'border-gray-300 bg-white'
+                    ? 'bg-gray-700 border-gray-600'
+                    : 'border-gray-300 bg-white'
                     }`}
                   placeholder="01XXXXXXXXX"
                   required
@@ -356,8 +419,8 @@ export const AddressModal: React.FC = () => {
                   value={trxId}
                   onChange={(e) => setTrxId(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${darkMode
-                      ? 'bg-gray-700 border-gray-600'
-                      : 'border-gray-300 bg-white'
+                    ? 'bg-gray-700 border-gray-600'
+                    : 'border-gray-300 bg-white'
                     }`}
                   placeholder="e.g., 9M7G4P5T8K"
                   required

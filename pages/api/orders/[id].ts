@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { getAuthOptions } from '../auth/[...nextauth]';
 
 type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED';
 
@@ -30,6 +32,11 @@ export default async function handler(
   try {
     if (req.method === 'GET') {
       // GET /api/orders/[id] - Fetch a single order
+      const session = await getServerSession(req, res, getAuthOptions(req, res));
+      if (!session) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
       const order = await prisma.order.findUnique({
         where: { id: orderId },
         include: {
@@ -48,11 +55,28 @@ export default async function handler(
         });
       }
 
+      // Fix IDOR: Ensure user owns the order or is admin
+      const isAdmin = session.user.role === 'ADMIN';
+      const isOwner = order.userId === session.user.id;
+
+      if (!isAdmin && !isOwner) {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden',
+        });
+      }
+
       return res.status(200).json({
         success: true,
         data: order,
       });
     } else if (req.method === 'PUT') {
+      // Check permission
+      const session = await getServerSession(req, res, getAuthOptions(req, res));
+      if (session?.user?.role !== 'ADMIN') {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+      }
+
       // PUT /api/orders/[id] - Update order status
       const { status } = req.body;
 
@@ -136,5 +160,6 @@ export default async function handler(
       success: false,
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
-    });  }
+    });
+  }
 }

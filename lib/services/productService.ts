@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { CreateProductInput, ProductFilter } from '@/types/service';
+import { CreateProductInput, UpdateProductInput, ProductFilter } from '@/types/service';
 
 export class ProductService {
 
@@ -26,7 +26,7 @@ export class ProductService {
       where.isArchived = false;
     }
 
-    const products = await prisma.product.findMany({
+    let products = await prisma.product.findMany({
       where,
       include: {
         options: {
@@ -35,13 +35,31 @@ export class ProductService {
           }
         }
       },
-      orderBy: filter.isAdmin ? [
-        { isArchived: 'asc' } as const, 
-        { createdAt: 'desc' } as const
-      ] : {
-        createdAt: 'desc',
-      } as const,
+      orderBy: filter.latest ? [
+        { createdAt: 'desc' } as any
+      ] : (filter.isAdmin ? [
+        { isArchived: 'asc' } as any, // Active first
+        { sortOrder: 'asc' } as any,  // Then by sort order
+        { createdAt: 'desc' } as any  // Newest fallback
+      ] : [
+        { sortOrder: 'asc' } as any,
+        { createdAt: 'desc' } as any,
+      ]),
     });
+
+    // Map to include rotation fields explicity if needed
+    products = products.map(p => ({
+      ...p,
+      // Ensure these exist in the output even if Prisma types lag
+      imageRotation: (p as any).imageRotation || 0,
+      options: p.options.map(o => ({
+        ...o,
+        values: o.values.map(v => ({
+          ...v,
+          rotation: (v as any).rotation || 0
+        }))
+      }))
+    }));
 
     if (filter.search) {
       return this.flattenProductsForSearch(products);
@@ -84,6 +102,140 @@ export class ProductService {
     });
   }
 
+  static async updateProduct(input: UpdateProductInput) {
+    const { id, options, replaceOptions, ...data } = input;
+
+    // First handle basic fields
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: {
+        ...data,
+      }
+    });
+
+    // Handle Options if provided
+    if (options) {
+      if (input.replaceOptions) {
+        // --- HYBRID RISK MODE: SYNC (Reconciliation) ---
+        // 1. Get all existing options for this product
+        const existingOptions = await prisma.productOption.findMany({
+          where: { productId: id },
+          include: { values: true }
+        });
+
+        // 2. Identify Options to Keep/Update vs Delete
+        const optionsToKeepIds: string[] = [];
+
+        for (const newOpt of options) {
+          // Find if this new option matches an existing one by name
+          let targetOption = existingOptions.find(eo => eo.name.toLowerCase() === newOpt.name.toLowerCase());
+
+          if (targetOption) {
+            optionsToKeepIds.push(targetOption.id);
+            // Sync Values for this option
+            const existingValues = targetOption.values;
+            const valuesToKeepIds: string[] = [];
+
+            for (const newVal of newOpt.values) {
+              let targetVal = existingValues.find(ev => ev.name.toLowerCase() === newVal.name.toLowerCase());
+
+              if (targetVal) {
+                valuesToKeepIds.push(targetVal.id);
+                // Update image if needed
+                if (newVal.image && newVal.image !== targetVal.image) {
+                  await prisma.productOptionValue.update({ where: { id: targetVal.id }, data: { image: newVal.image } });
+                }
+              } else {
+                // Create new value
+                const createdVal = await prisma.productOptionValue.create({
+                  data: { optionId: targetOption.id, name: newVal.name, image: newVal.image }
+                });
+                valuesToKeepIds.push(createdVal.id);
+              }
+            }
+
+            // Delete removed values for this option
+            await prisma.productOptionValue.deleteMany({
+              where: { optionId: targetOption.id, id: { notIn: valuesToKeepIds } }
+            });
+
+          } else {
+            // Create entire new option
+            const createdOpt = await prisma.productOption.create({
+              data: {
+                productId: id,
+                name: newOpt.name,
+                values: {
+                  create: newOpt.values.map(v => ({ name: v.name, image: v.image }))
+                }
+              }
+            });
+            optionsToKeepIds.push(createdOpt.id);
+          }
+        }
+
+        // 3. Delete removed Options
+        await prisma.productOption.deleteMany({
+          where: { productId: id, id: { notIn: optionsToKeepIds } }
+        });
+
+      } else {
+        // --- DEFAULT SAFE MODE: MERGE ---
+        for (const opt of options) {
+          const existingOption = await prisma.productOption.findFirst({
+            where: {
+              productId: id,
+              name: { equals: opt.name, mode: 'insensitive' }
+            }
+          });
+
+          if (existingOption) {
+            for (const val of opt.values) {
+              const existingValue = await prisma.productOptionValue.findFirst({
+                where: {
+                  optionId: existingOption.id,
+                  name: { equals: val.name, mode: 'insensitive' }
+                }
+              });
+
+              if (existingValue) {
+                if (val.image) {
+                  await prisma.productOptionValue.update({
+                    where: { id: existingValue.id },
+                    data: { image: val.image }
+                  });
+                }
+              } else {
+                await prisma.productOptionValue.create({
+                  data: {
+                    optionId: existingOption.id,
+                    name: val.name,
+                    image: val.image
+                  }
+                });
+              }
+            }
+          } else {
+            await prisma.productOption.create({
+              data: {
+                productId: id,
+                name: opt.name,
+                values: {
+                  create: opt.values.map(val => ({
+                    name: val.name,
+                    image: val.image
+                  }))
+                }
+              }
+            });
+          }
+        }
+      }
+    }
+
+    return await prisma.product.findUnique({ where: { id } });
+  }
+
   /**
    * Flattens product variants into individual search results
    */
@@ -105,6 +257,7 @@ export class ProductService {
             name: product.name,
             variantName: val.name,
             image: variantImage,
+            imageRotation: val.image ? (val.rotation || 0) : (product.imageRotation || 0),
           });
         }
       } else {

@@ -1,8 +1,27 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Phone, Mail } from 'lucide-react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+
+const containerStyle = {
+  width: '100%',
+  height: '100%'
+};
+
+const center = {
+  lat: 23.7963, // Rupayan Nowfa Plaza
+  lng: 90.3929
+};
+
+const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places"];
 
 export default function ContactUs() {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries: libraries
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -102,6 +121,28 @@ export default function ContactUs() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Map Section */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-12 h-96">
+          {isLoaded ? (
+            <GoogleMap
+              mapContainerStyle={containerStyle}
+              center={center}
+              zoom={16}
+              options={{
+                streetViewControl: true,
+                mapTypeControl: true,
+                fullscreenControl: true,
+              }}
+            >
+              <Marker position={center} />
+            </GoogleMap>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-100 animate-pulse text-gray-500">
+              Loading Map...
+            </div>
+          )}
         </div>
 
         {/* CEO Contact */}

@@ -196,8 +196,9 @@ export class OrderService {
           ...item,
           product: {
             ...item.product,
-            image: image
-          }
+            image: image,
+          },
+          imageRotation: (image === item.product.image ? (item.product as any).imageRotation : (item.product as any).options?.flatMap((o: any) => o.values).find((v: any) => v.image === image)?.rotation) || 0,
         };
       }),
       paymentMethod: order.paymentMethod,

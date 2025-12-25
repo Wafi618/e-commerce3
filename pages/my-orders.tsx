@@ -134,7 +134,8 @@ export default function MyOrdersPage() {
                             <img
                               src={getImageUrl(item.product.image) || '/placeholder.svg'}
                               alt={item.product.name}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover transition-transform duration-300"
+                              style={{ transform: `rotate(${(item as any).imageRotation || 0}deg)` }}
                               onError={(e) => {
                                 e.currentTarget.src = '/placeholder.svg';
                               }}

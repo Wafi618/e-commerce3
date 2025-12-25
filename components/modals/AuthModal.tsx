@@ -197,7 +197,7 @@ export const AuthModal: React.FC = () => {
 
 const ForgotPasswordModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { addNotification } = useNotification();
-  const [step, setStep] = useState<'method' | 'phone' | 'pin' | 'contact-admin'>('method');
+  const [step, setStep] = useState<'method' | 'phone' | 'pin' | 'contact-admin' | 'email-link'>('method');
   const [formData, setFormData] = useState({
     email: '',
     securityAnswer: '',
@@ -208,6 +208,32 @@ const ForgotPasswordModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
   });
   const [loading, setLoading] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+
+  const handleEmailReset = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        addNotification(data.message || 'Reset link sent! Check your inbox.', 'success');
+        onClose();
+      } else {
+        addNotification(data.error || 'Failed to send reset link', 'error');
+      }
+    } catch (err) {
+      addNotification('Network error. Failed to send request.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleReset = async (method: 'security-question' | 'pin') => {
     setLoading(true);
@@ -293,6 +319,14 @@ const ForgotPasswordModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
             <p className="text-sm text-gray-600">Choose a reset method:</p>
             <div className="space-y-3">
               <button
+                onClick={() => setStep('email-link')}
+                disabled={!formData.email}
+                className="w-full px-4 py-3 border border-blue-300 bg-blue-50 rounded-lg hover:bg-blue-100 text-left disabled:opacity-50"
+              >
+                <div className="font-medium text-blue-700">Email Link (Recommended)</div>
+                <div className="text-sm text-blue-600">We'll send a secure link to your inbox</div>
+              </button>
+              <button
                 onClick={() => setStep('phone')}
                 disabled={!formData.email}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-left disabled:opacity-50"
@@ -323,6 +357,41 @@ const ForgotPasswordModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
             >
               Cancel
             </button>
+          </div>
+        )}
+
+        {step === 'email-link' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500"
+              />
+            </div>
+            <p className="text-sm text-gray-600">
+              Click below to receive a password reset link at <strong>{formData.email}</strong>.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep('method')}
+                disabled={loading}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleEmailReset}
+                disabled={loading}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loading ? 'Sending...' : 'Send Link'}
+              </button>
+            </div>
           </div>
         )}
 

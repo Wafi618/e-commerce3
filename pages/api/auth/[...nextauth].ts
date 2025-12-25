@@ -95,7 +95,7 @@ export const getAuthOptions = (req: NextApiRequest, res: NextApiResponse): NextA
 
                     // 2. Handle Email/Password Login
                     if (!credentials?.email || !credentials?.password) {
-                        return null;
+                        throw new Error("Invalid email or password");
                     }
 
                     const user: PrismaUser | null = await prisma.user.findUnique({
@@ -103,7 +103,7 @@ export const getAuthOptions = (req: NextApiRequest, res: NextApiResponse): NextA
                     });
 
                     if (!user) {
-                        return null;
+                        throw new Error("Invalid email or password");
                     }
 
                     if (!user.password) {
@@ -113,7 +113,7 @@ export const getAuthOptions = (req: NextApiRequest, res: NextApiResponse): NextA
                     const isValid = await bcrypt.compare(credentials.password, user.password);
 
                     if (!isValid) {
-                        return null;
+                        throw new Error("Invalid email or password");
                     }
 
                     // Check if user has phone or PIN for password reset
