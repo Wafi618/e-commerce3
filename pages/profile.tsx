@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
 import { Input } from '@/components/ui/Input';
-import { useAuth, useTheme } from '@/contexts';
+import Link from 'next/link';
+import { useAuth, useTheme, useCart, useWishlist } from '@/contexts';
 import { useNotification } from '@/contexts/NotificationContext';
-import { Plus, Trash2, MapPin, Home } from 'lucide-react';
+import { Plus, Trash2, MapPin, Home, ShoppingCart, Heart } from 'lucide-react';
+import { getImageUrl } from '@/utils/imageUtils';
+import { ProductImage } from '@/components/ui/ProductImage';
 
 interface Address {
   id: string;
@@ -33,6 +36,12 @@ export default function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showAddAddress, setShowAddAddress] = useState(false);
+  const { addToCart } = useCart();
+  const { removeFromWishlist } = useWishlist();
+
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
+
   const [newAddress, setNewAddress] = useState({
     label: 'Home',
     phone: '',
@@ -58,7 +67,29 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchAddresses();
+    fetchWishlistItems();
   }, []);
+
+  const fetchWishlistItems = async () => {
+    setLoadingWishlist(true);
+    try {
+      const res = await fetch('/api/wishlist');
+      const data = await res.json();
+      if (data.success) {
+        setWishlistItems(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch wishlist', error);
+    } finally {
+      setLoadingWishlist(false);
+    }
+  };
+
+  const handleRemoveFromWishlist = async (productId: number) => {
+    await removeFromWishlist(productId);
+    // Refresh list locally
+    setWishlistItems(prev => prev.filter(item => item.productId !== productId));
+  };
 
   useEffect(() => {
     if (user) {
@@ -371,6 +402,70 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        {/* My Wishlist Section */}
+        <div className={`mt-8 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
+          <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-6`}>My Wishlist</h2>
+
+          {loadingWishlist ? (
+            <div className="text-center py-8">Loading...</div>
+          ) : wishlistItems.length === 0 ? (
+            <div className="text-center py-8">
+              <Heart className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Your wishlist is empty.</p>
+              <Link href="/store">
+                <button className="mt-4 text-blue-600 hover:underline">
+                  Browse Products
+                </button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {wishlistItems.map((item) => (
+                <div key={item.id} className={`border rounded-lg overflow-hidden flex flex-col ${darkMode ? 'border-gray-700 bg-gray-750' : 'border-gray-200 bg-white'}`}>
+                  <div className="relative h-48 bg-gray-100 dark:bg-gray-700 p-2">
+                    <ProductImage
+                      src={item.product.image}
+                      alt={item.product.name}
+                      className="w-full h-full object-contain"
+                      options={item.product.options}
+                      imageRotation={item.product.imageRotation || 0}
+                    />
+                    <button
+                      onClick={() => handleRemoveFromWishlist(item.productId)}
+                      className="absolute top-4 left-4 p-1.5 bg-white/80 hover:bg-red-500 hover:text-white text-gray-500 rounded-full transition-colors shadow-sm z-20"
+                      title="Remove from Wishlist"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <Link href={`/product/${item.productId}`}>
+                      <h3 className={`font-semibold mb-1 hover:text-blue-600 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {item.product.name}
+                      </h3>
+                    </Link>
+                    <p className={`text-lg font-bold mb-3 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                      ৳{Number(item.product.price).toFixed(2)}
+                    </p>
+
+                    <button
+                      onClick={() => addToCart({ ...item.product, id: item.productId })}
+                      disabled={item.product.stock <= 0}
+                      className={`mt-auto w-full py-2 rounded-lg flex items-center justify-center gap-2 font-medium transition-colors ${item.product.stock > 0
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
+                        }`}
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      {item.product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   );
@@ -423,8 +518,8 @@ const SecuritySettings: React.FC<{ darkMode: boolean; addNotification: (msg: str
             value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 3))}
             className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${darkMode
-                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
-                : 'bg-white border-gray-300 text-gray-900'
+              ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+              : 'bg-white border-gray-300 text-gray-900'
               }`}
             placeholder="123"
             maxLength={3}

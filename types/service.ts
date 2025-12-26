@@ -35,6 +35,8 @@ export interface ProductFilter {
   category?: string;
   subcategory?: string;
   search?: string;
+  minPrice?: number;
+  maxPrice?: number;
   isAdmin?: boolean;
   latest?: boolean;
 }

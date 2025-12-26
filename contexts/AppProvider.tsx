@@ -7,6 +7,7 @@ import { ProductProvider } from './ProductContext';
 import { OrderProvider } from './OrderContext';
 import { MessageProvider } from './MessageContext';
 import { NotificationProvider } from './NotificationContext';
+import { WishlistProvider } from './WishlistContext';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -46,9 +47,11 @@ export function AppProvider({ children, initialData }: AppProviderProps & { init
             <ThemeProvider>
               <AuthCartBridge>
                 <ProductProvider initialProducts={initialData?.products}>
-                  <OrderProvider>
-                    {children}
-                  </OrderProvider>
+                  <WishlistProvider>
+                    <OrderProvider>
+                      {children}
+                    </OrderProvider>
+                  </WishlistProvider>
                 </ProductProvider>
               </AuthCartBridge>
             </ThemeProvider>

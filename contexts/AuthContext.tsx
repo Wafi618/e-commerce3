@@ -35,6 +35,7 @@ interface AuthContextValue {
   handleLogin: (email: string, password: string) => Promise<void>;
   handleRegister: (email: string, password: string, name: string, phone: string) => Promise<void>;
   handleLogout: () => Promise<void>;
+  loading: boolean;
 }
 
 interface AuthProviderProps {
@@ -130,6 +131,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     handleLogin,
     handleRegister,
     handleLogout,
+    loading: status === 'loading',
   };
 
   return (

@@ -21,6 +21,12 @@ export class ProductService {
       };
     }
 
+    if (filter.minPrice !== undefined || filter.maxPrice !== undefined) {
+      where.price = {};
+      if (filter.minPrice !== undefined) where.price.gte = filter.minPrice;
+      if (filter.maxPrice !== undefined) where.price.lte = filter.maxPrice;
+    }
+
     // Filter out archived products for non-admins
     if (!filter.isAdmin) {
       where.isArchived = false;

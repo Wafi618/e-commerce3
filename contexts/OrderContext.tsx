@@ -20,7 +20,7 @@ interface Order {
   notes?: string;
   items: any[];
   total: number;
-  status: 'pending' | 'processing' | 'shipping' | 'completed' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipping' | 'completed' | 'cancelled' | 'refund_in_progress' | 'refunded' | 'PENDING' | 'PROCESSING' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED' | 'REFUND_IN_PROGRESS' | 'REFUNDED';
   paymentId: string;
   createdAt: string;
   // Additional properties for compatibility
@@ -127,8 +127,8 @@ export function OrderProvider({ children }: OrderProviderProps) {
    * @param orderStatus - Current order status
    */
   const deleteOrder = async (orderId: string, orderStatus: string) => {
-    if (orderStatus !== 'completed' && orderStatus !== 'cancelled') {
-      addNotification('Only completed or cancelled orders can be deleted', 'warning');
+    if (orderStatus !== 'completed' && orderStatus !== 'cancelled' && orderStatus !== 'refunded' && orderStatus !== 'COMPLETED' && orderStatus !== 'CANCELLED' && orderStatus !== 'REFUNDED') {
+      addNotification('Only completed, cancelled, or refunded orders can be deleted', 'warning');
       return;
     }
 

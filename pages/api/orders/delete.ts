@@ -22,9 +22,9 @@ export default async function handler(
     // We can remove the DB check since requireAdmin checks the session/token role.
     // However, checking DB is safer if role was revoked. 
     // But the original code checked role from DB using the ID from token.
-    
+
     // Let's stick to the pattern:
-    
+
     const { orderId } = req.body;
 
     if (!orderId) {
@@ -47,11 +47,11 @@ export default async function handler(
       });
     }
 
-    // Only allow deletion if status is COMPLETED or CANCELLED
-    if (order.status !== 'COMPLETED' && order.status !== 'CANCELLED') {
+    // Only allow deletion if status is COMPLETED, CANCELLED, or REFUNDED
+    if (order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && order.status !== 'REFUNDED') {
       return res.status(400).json({
         success: false,
-        error: 'Only completed or cancelled orders can be deleted',
+        error: 'Only completed, cancelled, or refunded orders can be deleted',
       });
     }
 
@@ -70,5 +70,6 @@ export default async function handler(
       success: false,
       error: 'Failed to delete order',
       message: error instanceof Error ? error.message : 'Unknown error',
-    });  }
+    });
+  }
 }

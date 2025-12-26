@@ -3,12 +3,13 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Head from 'next/head';
 import { GetServerSideProps } from 'next';
-import { ArrowLeft, ShoppingCart, Package, AlertCircle, X, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Package, AlertCircle, X, ChevronLeft, ChevronRight, Maximize2, Heart } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { getImageUrl } from '@/utils/imageUtils';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ParticlesBackground } from '@/components/ParticlesBackground';
-import { useCart, useTheme } from '@/contexts';
+import { useCart, useTheme, useWishlist } from '@/contexts';
+import { ProductImage } from '@/components/ui/ProductImage';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import WhatsAppButton from '@/components/ui/WhatsAppButton';
@@ -38,6 +39,7 @@ interface Product {
   subcategory?: string;
   description?: string;
   isArchived?: boolean;
+  imageRotation?: number;
   options: ProductOption[];
 }
 
@@ -56,6 +58,7 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
   const router = useRouter();
   const { addToCart } = useCart();
   const { darkMode } = useTheme();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
 
   const [selectedImage, setSelectedImage] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -417,8 +420,25 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
                 >
                   <ShoppingCart className="w-5 h-5" />
                   {product.stock <= 0 ? 'Out of Stock' : `Add ${quantity} to Cart`}
+
                 </button>
-                <WhatsAppButton product={product} darkMode={darkMode} />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => isInWishlist(product.id) ? removeFromWishlist(product.id) : addToWishlist(product.id)}
+                    className={`flex-1 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors border ${isInWishlist(product.id)
+                      ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
+                      : darkMode
+                        ? 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700 hover:text-white'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                  >
+                    <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                    {isInWishlist(product.id) ? 'Saved to Wishlist' : 'Add to Wishlist'}
+                  </button>
+                  <div className="flex-1">
+                    <WhatsAppButton product={product} darkMode={darkMode} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -508,14 +528,32 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
                     href={`/product/${similarProduct.id}`}
                     className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow`}
                   >
-                    <div className={`h-32 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} flex items-center justify-center overflow-hidden`}>
-                      <img
-                        src={getImageUrl(similarProduct.image || similarProduct.options?.find(o => o.values.find(v => v.image))?.values.find(v => v.image)?.image || '') || '/placeholder.svg'}
-                        alt={similarProduct.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder.svg';
+                    <div className={`h-48 relative ${darkMode ? 'bg-gray-700' : 'bg-gray-100'} overflow-hidden group`}>
+                      {/* Wishlist Button */}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (isInWishlist(Number(similarProduct.id))) {
+                            removeFromWishlist(Number(similarProduct.id));
+                          } else {
+                            addToWishlist(Number(similarProduct.id));
+                          }
                         }}
+                        className={`absolute top-4 left-4 p-2 rounded-full z-20 transition-all ${isInWishlist(Number(similarProduct.id))
+                          ? 'bg-red-500 text-white shadow-red-500/50 shadow-lg'
+                          : 'bg-white/90 text-gray-400 hover:text-red-500 hover:bg-white shadow-sm'
+                          }`}
+                      >
+                        <Heart className={`w-4 h-4 ${isInWishlist(Number(similarProduct.id)) ? 'fill-current' : ''}`} />
+                      </button>
+
+                      <ProductImage
+                        src={similarProduct.image}
+                        alt={similarProduct.name}
+                        className="w-full h-full object-contain p-2"
+                        options={similarProduct.options}
+                        imageRotation={similarProduct.imageRotation || 0}
                       />
                     </div>
                     <div className="p-3">

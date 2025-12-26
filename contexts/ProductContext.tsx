@@ -43,6 +43,8 @@ interface ProductContextValue {
   setShowSuggestions: (show: boolean) => void;
   showSearchModal: boolean;
   setShowSearchModal: (show: boolean) => void;
+  priceRange: [number, number];
+  setPriceRange: (range: [number, number]) => void;
   editingProduct: Product | null;
   setEditingProduct: (product: Product | null) => void;
   showProductModal: boolean;
@@ -83,6 +85,7 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
   const [searchSuggestions, setSearchSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]); // Max 100k default
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
 
@@ -104,6 +107,8 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
       if (searchQuery) {
         params.append('search', searchQuery);
       }
+      if (priceRange[0] > 0) params.append('minPrice', priceRange[0].toString());
+      if (priceRange[1] < 100000) params.append('maxPrice', priceRange[1].toString());
 
       const response = await fetch(`/api/products?${params.toString()}`);
       const data = await response.json();
@@ -236,13 +241,13 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
   // Fetch products on mount and when filters change
   useEffect(() => {
     // If we have initial products and no filters are active, don't fetch immediately
-    if (initialLoadRef.current && initialProducts && selectedCategory === 'All' && !searchQuery) {
+    if (initialLoadRef.current && initialProducts && selectedCategory === 'All' && !searchQuery && priceRange[0] === 0 && priceRange[1] === 100000) {
       initialLoadRef.current = false;
       return;
     }
     initialLoadRef.current = false;
     fetchProducts();
-  }, [selectedCategory, selectedSubcategory, searchQuery]);
+  }, [selectedCategory, selectedSubcategory, searchQuery, priceRange]);
 
   // Fetch search suggestions as user types (debounced)
   useEffect(() => {
@@ -291,6 +296,8 @@ export function ProductProvider({ children, initialProducts }: ProductProviderPr
     setShowSuggestions,
     showSearchModal,
     setShowSearchModal,
+    priceRange,
+    setPriceRange,
     editingProduct,
     setEditingProduct,
     showProductModal,

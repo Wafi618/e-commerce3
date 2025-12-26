@@ -36,6 +36,7 @@ model User {
   orders              Order[]
   sessions            Session[]
   reviews             Review[]
+  wishlists           Wishlist[]
 }
 
 model Account {
@@ -92,6 +93,7 @@ model Product {
   orderItems  OrderItem[]
   reviews     Review[]
   options     ProductOption[]
+  wishlists   Wishlist[]
 
   @@index([category])
 }
@@ -210,13 +212,44 @@ enum Role {
   CUSTOMER
 }
 
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  productId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model Coupon {
+  id                String    @id @default(cuid())
+  code              String    @unique
+  type              String    // "PERCENTAGE" or "FIXED"
+  value             Decimal   @db.Decimal(10, 2)
+  minOrderAmount    Decimal?  @db.Decimal(10, 2)
+  maxDiscountAmount Decimal?  @db.Decimal(10, 2)
+  usageLimit        Int?
+  usedCount         Int       @default(0)
+  oneUsePerCustomer Boolean   @default(true)
+  isActive          Boolean   @default(true)
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+}
+
 enum OrderStatus {
   PENDING
   PROCESSING
   COMPLETED
   CANCELLED
   SHIPPING
+  REFUND_IN_PROGRESS
+  REFUNDED
 }
+
 
 model Announcement {
   id        Int      @id @default(autoincrement())

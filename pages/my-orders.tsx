@@ -110,7 +110,7 @@ export default function MyOrdersPage() {
                           <RefreshCw size={14} />
                           Reorder
                         </button>
-                        {order.status !== 'shipping' && order.status !== 'completed' && order.status !== 'cancelled' && (
+                        {order.status !== 'shipping' && order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'refund_in_progress' && order.status !== 'refunded' && order.status !== 'SHIPPING' && order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && order.status !== 'REFUND_IN_PROGRESS' && order.status !== 'REFUNDED' && (
                           <button
                             onClick={() => handleCancelOrder(order.id)}
                             className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"

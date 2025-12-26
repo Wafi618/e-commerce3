@@ -14,6 +14,11 @@ export const AddressModal: React.FC = () => {
     checkoutLoading,
     cartTotal,
     shippingCost,
+    couponCode,
+    discountAmount,
+    applyCoupon,
+    removeCoupon,
+    finalTotal,
   } = useCart();
 
   const { darkMode } = useTheme(); // Get dark mode state
@@ -21,6 +26,20 @@ export const AddressModal: React.FC = () => {
   // State for new manual payment fields
   const [bkashNumber, setBkashNumber] = useState('');
   const [trxId, setTrxId] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    const result = await applyCoupon(couponInput);
+    setCouponLoading(false);
+    if (!result.success) {
+      setCouponError(result.message || 'Invalid coupon code');
+    }
+  };
 
   // Saved addresses state
   interface Address {
@@ -332,6 +351,39 @@ export const AddressModal: React.FC = () => {
           {/* --- ORDER SUMMARY --- */}
           <div className={`mt-6 p-4 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
             <h4 className={`font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Order Summary</h4>
+
+            {/* Coupon Input */}
+            <div className="mb-4">
+              {couponCode ? (
+                <div className={`flex items-center justify-between p-2 rounded ${darkMode ? 'bg-green-900/30 border border-green-700' : 'bg-green-50 border border-green-200'}`}>
+                  <span className="text-green-600 font-medium">Coupon: {couponCode}</span>
+                  <button onClick={removeCoupon} className="text-red-500 text-sm hover:underline">Remove</button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Coupon Code"
+                      value={couponInput}
+                      onChange={(e) => { setCouponInput(e.target.value); setCouponError(null); }}
+                      className={`flex-1 px-3 py-2 border rounded-lg ${darkMode ? 'bg-gray-600 border-gray-500' : 'bg-white border-gray-300'} ${couponError ? 'border-red-500' : ''}`}
+                    />
+                    <button
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading || !couponInput}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {couponLoading ? '...' : 'Apply'}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p className="text-red-500 text-sm mt-2">{couponError}</p>
+                  )}
+                </>
+              )}
+            </div>
+
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Subtotal</span>
@@ -341,9 +393,15 @@ export const AddressModal: React.FC = () => {
                 <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Shipping Cost</span>
                 <span className={darkMode ? 'text-white' : 'text-gray-900'}>৳{shippingCost.toFixed(2)}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-green-500">
+                  <span>Discount</span>
+                  <span>-৳{discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className={`flex justify-between font-bold pt-2 border-t ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
                 <span className={darkMode ? 'text-white' : 'text-gray-900'}>Total Payable</span>
-                <span className="text-blue-600">৳{(cartTotal + shippingCost).toFixed(2)}</span>
+                <span className="text-blue-600">৳{finalTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -371,7 +429,7 @@ export const AddressModal: React.FC = () => {
                 <span>
                   2. Send the exact amount:{' '}
                   <strong className="text-lg">
-                    ৳{(Number(cartTotal) + shippingCost).toFixed(2)}
+                    ৳{finalTotal.toFixed(2)}
                   </strong>
                 </span>
                 <br />

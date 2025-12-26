@@ -54,6 +54,11 @@ interface CartContextValue {
   cartTotal: number;
   reorder: (order: any, products: any[]) => void;
   shippingCost: number;
+  couponCode: string | null;
+  discountAmount: number;
+  applyCoupon: (code: string) => Promise<{ success: boolean; message?: string }>;
+  removeCoupon: () => void;
+  finalTotal: number;
 }
 
 interface CartProviderProps {
@@ -104,6 +109,8 @@ export function CartProvider({ children }: CartProviderProps) {
   });
 
   const [shippingCost, setShippingCost] = useState(60); // Default 60 (Taka)
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   /**
    * Loads cart from localStorage on mount (for guest users)
@@ -423,7 +430,7 @@ export function CartProvider({ children }: CartProviderProps) {
 
     try {
       const subTotal = cart.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
-      const total = subTotal + shippingCost;
+      const total = finalTotal;
       const invoiceNumber = `INV-${Date.now()}`;
 
       // Store cart items and address temporarily for the callback
@@ -443,6 +450,8 @@ export function CartProvider({ children }: CartProviderProps) {
           customerName: user?.name || 'Guest',
           userId: user?.id || null,
           shippingCost: shippingCost,
+          couponCode: couponCode,
+          discountAmount: discountAmount,
           ...addressData,
         }),
       });
@@ -480,12 +489,14 @@ export function CartProvider({ children }: CartProviderProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: cartTotal + shippingCost,
+          amount: finalTotal,
           cartItems: cart,
           customerEmail: user?.email || '',
           customerName: user?.name || 'Guest',
           userId: user?.id || null,
           shippingCost: shippingCost,
+          couponCode: couponCode,
+          discountAmount: discountAmount,
           ...addressData,
           bkashNumber,
           trxId,
@@ -619,6 +630,50 @@ export function CartProvider({ children }: CartProviderProps) {
     return cart.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
   }, [cart]);
 
+  /**
+   * Final Total (Cart + Shipping - Discount)
+   */
+  const finalTotal = useMemo(() => {
+    return Math.max(0, cartTotal + shippingCost - discountAmount);
+  }, [cartTotal, shippingCost, discountAmount]);
+
+  /**
+   * Apply Coupon Code
+   */
+  const applyCoupon = async (code: string) => {
+    try {
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, cartTotal }),
+      });
+      const data = await response.json();
+
+      if (data.success && data.valid) {
+        setCouponCode(data.coupon.code);
+        setDiscountAmount(data.coupon.discountAmount);
+        addNotification(`Coupon applied! Saved ${data.coupon.discountAmount} Tk`, 'success');
+        return { success: true };
+      } else {
+        setCouponCode(null);
+        setDiscountAmount(0);
+        return { success: false, message: data.message };
+      }
+    } catch (error) {
+      console.error('Apply coupon error:', error);
+      return { success: false, message: 'Failed to validate coupon' };
+    }
+  };
+
+  /**
+   * Remove Coupon
+   */
+  const removeCoupon = () => {
+    setCouponCode(null);
+    setDiscountAmount(0);
+    addNotification('Coupon removed', 'info');
+  };
+
   const value: CartContextValue = {
     cart,
     setCart,
@@ -640,6 +695,11 @@ export function CartProvider({ children }: CartProviderProps) {
     cartTotal,
     reorder,
     shippingCost,
+    couponCode,
+    discountAmount,
+    applyCoupon,
+    removeCoupon,
+    finalTotal,
   };
 
   return (

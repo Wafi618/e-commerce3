@@ -32,6 +32,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ initialLat, initialLng,
     const [markerPos, setMarkerPos] = useState(defaultCenter);
     const [searchResult, setSearchResult] = useState<google.maps.places.PlaceResult | null>(null);
     const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     // Initialize with props if available
     useEffect(() => {
@@ -61,13 +62,17 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ initialLat, initialLng,
                 const geocoder = new google.maps.Geocoder();
                 const response = await geocoder.geocode({ location: { lat, lng } });
                 if (response.results[0]) {
-                    onLocationSelect(lat, lng, response.results[0].formatted_address);
+                    const address = response.results[0].formatted_address;
+                    onLocationSelect(lat, lng, address);
+                    if (inputRef.current) {
+                        inputRef.current.value = address;
+                    }
                 } else {
                     onLocationSelect(lat, lng, "");
                 }
             } catch (error) {
                 console.error("Geocoding failed", error);
-                onLocationSelect(lat, lng, ""); // Still update coords even if geocode fails
+                onLocationSelect(lat, lng, "");
             }
         }
     }, [onLocationSelect]);
@@ -128,6 +133,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ initialLat, initialLng,
                     onPlaceChanged={onPlaceChanged}
                 >
                     <input
+                        ref={inputRef}
                         type="text"
                         placeholder="Search or type your address location..."
                         className="w-full p-2 pl-10 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"

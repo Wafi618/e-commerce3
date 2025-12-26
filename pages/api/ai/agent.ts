@@ -134,6 +134,25 @@ const getTools = (enableImageGen: boolean) => {
                     }
                 },
                 {
+                    name: 'getArchivedProducts',
+                    description: 'Get a list of all products that are currently archived. Returns product IDs and basic details.',
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {},
+                    },
+                },
+                {
+                    name: 'getProductDetails',
+                    description: 'Get full details of a specific product by ID, regardless of its archived status. Use this to check stock, price, or options for a specific item id.',
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            id: { type: "NUMBER", description: "Product ID" }
+                        },
+                        required: ['id']
+                    },
+                },
+                {
                     name: 'getSiteStats',
                     description: 'Get high-level site statistics. Use this to understand the store performance and inventory state before making changes.',
                     parameters: {
@@ -285,7 +304,92 @@ const getTools = (enableImageGen: boolean) => {
                         },
                         required: ['email', 'subject', 'message']
                     }
-                }
+                },
+                // Tool: Create Coupon
+                {
+                    name: 'createCoupon',
+                    description: 'Create a new discount coupon code programmatically.',
+                    parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                            code: { type: 'STRING', description: 'The unique coupon code (e.g., SUMMER20).' },
+                            discountType: { type: 'STRING', description: 'Type of discount: PERCENTAGE or FIXED.', enum: ['PERCENTAGE', 'FIXED'] },
+                            discountValue: { type: 'NUMBER', description: 'The value of the discount.' },
+                            minOrderAmount: { type: 'NUMBER', description: 'Minimum order amount to apply the coupon.' },
+                            expiresInDays: { type: 'NUMBER', description: 'Days until the coupon expires.' },
+                        },
+                        required: ['code', 'discountType', 'discountValue'],
+                    },
+                },
+                // Tool: Get Wishlist Insights
+                {
+                    name: 'getWishlistInsights',
+                    description: 'Analyze user wishlists to find popular products.',
+                    parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                            limit: { type: 'NUMBER', description: 'Number of top products to return (default 5).' },
+                        },
+                    },
+                },
+                // Tool: Send Targeted Email
+                {
+                    name: 'sendTargetedEmail',
+                    description: 'Send a targeted email to a specific user (by email).',
+                    parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                            email: { type: 'STRING', description: 'The recipient email address.' },
+                            subject: { type: 'STRING', description: 'Email subject line.' },
+                            message: { type: 'STRING', description: 'Email body content (can be HTML).' },
+                        },
+                        required: ['email', 'subject', 'message'],
+                    },
+                },
+                // Tool: List Coupons
+                {
+                    name: 'listCoupons',
+                    description: 'List all coupons or search for specific coupons.',
+                    parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                            search: { type: 'STRING', description: 'Search term for coupon code.' },
+                            activeOnly: { type: 'BOOLEAN', description: 'If true, only return active coupons.' },
+                            limit: { type: 'NUMBER', description: 'Number of coupons to return (default 20).' },
+                        },
+                    },
+                },
+                // Tool: Update Coupon
+                {
+                    name: 'updateCoupon',
+                    description: 'Update an existing coupon by ID or code.',
+                    parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                            id: { type: 'STRING', description: 'Coupon ID to update.' },
+                            code: { type: 'STRING', description: 'Coupon code to update (used if ID not provided).' },
+                            discountType: { type: 'STRING', description: 'New discount type: PERCENTAGE or FIXED.', enum: ['PERCENTAGE', 'FIXED'] },
+                            discountValue: { type: 'NUMBER', description: 'New discount value.' },
+                            minOrderAmount: { type: 'NUMBER', description: 'New minimum order amount.' },
+                            maxDiscountAmount: { type: 'NUMBER', description: 'Maximum discount amount (for percentage coupons).' },
+                            usageLimit: { type: 'NUMBER', description: 'New usage limit.' },
+                            isActive: { type: 'BOOLEAN', description: 'Set coupon active/inactive.' },
+                            expiresInDays: { type: 'NUMBER', description: 'Days from now until expiry (overrides current).' },
+                        },
+                    },
+                },
+                // Tool: Delete Coupon
+                {
+                    name: 'deleteCoupon',
+                    description: 'Permanently delete a coupon by ID or code.',
+                    parameters: {
+                        type: 'OBJECT',
+                        properties: {
+                            id: { type: 'STRING', description: 'Coupon ID to delete.' },
+                            code: { type: 'STRING', description: 'Coupon code to delete (used if ID not provided).' },
+                        },
+                    },
+                },
             ]
         }
     ];
@@ -337,7 +441,7 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
 
     try {
         switch (name) {
-            case 'listProducts':
+            case 'listProducts': {
                 const products = await ProductService.getProducts({
                     search: args?.search as string,
                     category: args?.category as string,
@@ -360,6 +464,7 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
                     }))
                 };
                 break;
+            }
             case 'createProduct':
                 const newProduct = await ProductService.createProduct({
                     name: args?.name as string,
@@ -412,6 +517,28 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
                         where: { id: delId }
                     });
                     apiResponse = { success: true, message: "Product deleted successfully." };
+                }
+                break;
+            case 'getArchivedProducts':
+                const archivedProducts = await prisma.product.findMany({
+                    where: { isArchived: true },
+                    select: { id: true, name: true, price: true, stock: true, image: true, category: true }
+                });
+                apiResponse = { products: archivedProducts };
+                break;
+            case 'getProductDetails':
+                const prodId = getSafeProductId(args?.id);
+                if (isNaN(prodId)) throw new Error(`Invalid Product ID: ${args?.id}`);
+
+                const productDetails = await prisma.product.findUnique({
+                    where: { id: prodId },
+                    include: { options: { include: { values: true } } }
+                });
+
+                if (!productDetails) {
+                    apiResponse = { success: false, error: "Product not found." };
+                } else {
+                    apiResponse = { product: productDetails };
                 }
                 break;
             case 'getSiteStats':
@@ -744,10 +871,144 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
                     apiResponse = { success: false, error: 'Failed to send email.' };
                 }
                 break;
+            case 'createCoupon': {
+                const { code, discountType, discountValue, minOrderAmount, expiresInDays } = args;
+
+                // Calculate expiry date
+                let expiresAt = null;
+                if (expiresInDays) {
+                    const date = new Date();
+                    date.setDate(date.getDate() + expiresInDays);
+                    expiresAt = date;
+                }
+
+                const coupon = await prisma.coupon.create({
+                    data: {
+                        code: code.toUpperCase(),
+                        type: discountType,
+                        value: discountValue,
+                        minOrderAmount: minOrderAmount || 0,
+                        expiresAt,
+                        isActive: true,
+                    },
+                });
+                apiResponse = { success: true, coupon };
+                break;
+            }
+            case 'getWishlistInsights': {
+                const { limit = 5 } = args;
+
+                const insights = await prisma.wishlist.groupBy({
+                    by: ['productId'],
+                    _count: {
+                        productId: true,
+                    },
+                    orderBy: {
+                        _count: {
+                            productId: 'desc',
+                        },
+                    },
+                    take: limit,
+                });
+
+                // Fetch product details for these IDs
+                const productIds = insights.map((i: any) => i.productId);
+                const products = await prisma.product.findMany({
+                    where: { id: { in: productIds } },
+                    select: { id: true, name: true, price: true, category: true }
+                });
+
+                // Combine
+                const result = insights.map((item: any) => {
+                    const product = products.find((p: any) => p.id === item.productId);
+                    return {
+                        product: product ? product.name : 'Unknown Product',
+                        productId: item.productId,
+                        wishlistCount: item._count.productId,
+                        category: product ? product.category : 'N/A'
+                    };
+                });
+
+                apiResponse = { success: true, insights: result };
+                break;
+            }
+            case 'sendTargetedEmail':
+                const { email, subject, message } = args;
+                const emailSent = await sendCustomerEmail(email, subject, message);
+                if (emailSent) {
+                    apiResponse = { success: true, message: `Email sent to ${email}` };
+                } else {
+                    apiResponse = { success: false, error: 'Failed to send email' };
+                }
+                break;
+            case 'listCoupons': {
+                const where: any = {};
+                if (args?.search) {
+                    where.code = { contains: args.search.toUpperCase(), mode: 'insensitive' };
+                }
+                if (args?.activeOnly) {
+                    where.isActive = true;
+                }
+                const coupons = await prisma.coupon.findMany({
+                    where,
+                    take: (args?.limit as number) || 20,
+                    orderBy: { createdAt: 'desc' },
+                });
+                apiResponse = { success: true, coupons };
+                break;
+            }
+            case 'updateCoupon': {
+                let coupon = null;
+                if (args?.id) {
+                    coupon = await prisma.coupon.findUnique({ where: { id: args.id } });
+                } else if (args?.code) {
+                    coupon = await prisma.coupon.findFirst({ where: { code: args.code.toUpperCase() } });
+                }
+
+                if (!coupon) {
+                    apiResponse = { success: false, error: 'Coupon not found' };
+                } else {
+                    const updateData: any = {};
+                    if (args?.discountType) updateData.type = args.discountType;
+                    if (args?.discountValue !== undefined) updateData.value = args.discountValue;
+                    if (args?.minOrderAmount !== undefined) updateData.minOrderAmount = args.minOrderAmount;
+                    if (args?.maxDiscountAmount !== undefined) updateData.maxDiscountAmount = args.maxDiscountAmount;
+                    if (args?.usageLimit !== undefined) updateData.usageLimit = args.usageLimit;
+                    if (args?.isActive !== undefined) updateData.isActive = args.isActive;
+                    if (args?.expiresInDays !== undefined) {
+                        const date = new Date();
+                        date.setDate(date.getDate() + args.expiresInDays);
+                        updateData.expiresAt = date;
+                    }
+
+                    const updated = await prisma.coupon.update({
+                        where: { id: coupon.id },
+                        data: updateData,
+                    });
+                    apiResponse = { success: true, coupon: updated };
+                }
+                break;
+            }
+            case 'deleteCoupon': {
+                let coupon = null;
+                if (args?.id) {
+                    coupon = await prisma.coupon.findUnique({ where: { id: args.id } });
+                } else if (args?.code) {
+                    coupon = await prisma.coupon.findFirst({ where: { code: args.code.toUpperCase() } });
+                }
+
+                if (!coupon) {
+                    apiResponse = { success: false, error: 'Coupon not found' };
+                } else {
+                    await prisma.coupon.delete({ where: { id: coupon.id } });
+                    apiResponse = { success: true, message: `Coupon ${coupon.code} deleted successfully.` };
+                }
+                break;
+            }
             default:
                 apiResponse = {
                     error: `Tool "${name}" does not exist.`,
-                    available_tools: ['listProducts', 'createProduct', 'updateProduct', 'getSiteStats', 'rotateLocalImage', 'updateProductRotation'],
+                    available_tools: ['listProducts', 'createProduct', 'updateProduct', 'getSiteStats', 'rotateLocalImage', 'updateProductRotation', 'listCoupons', 'updateCoupon', 'deleteCoupon'],
                     instruction: 'Please use listProducts to find items before updating them.'
                 };
         }

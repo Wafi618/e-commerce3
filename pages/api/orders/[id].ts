@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '../auth/[...nextauth]';
 
-type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED';
+type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPING' | 'COMPLETED' | 'CANCELLED' | 'REFUND_IN_PROGRESS' | 'REFUNDED';
 
 
 export default async function handler(
@@ -96,7 +96,7 @@ export default async function handler(
       }
 
       // Validate status
-      const validStatuses = ['PENDING', 'PROCESSING', 'SHIPPING', 'COMPLETED', 'CANCELLED'];
+      const validStatuses = ['PENDING', 'PROCESSING', 'SHIPPING', 'COMPLETED', 'CANCELLED', 'REFUND_IN_PROGRESS', 'REFUNDED'];
       const upperStatus = status?.toUpperCase();
 
       if (!upperStatus || !validStatuses.includes(upperStatus)) {

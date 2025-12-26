@@ -8,6 +8,7 @@ import { AnnouncementsTab } from '@/components/admin/AnnouncementsTab';
 import { LandingTab } from '@/components/admin/LandingTab';
 import { DeepSeekChat } from '@/components/admin/DeepSeekChat';
 import { SettingsTab } from '@/components/admin/SettingsTab';
+import { CouponsTab } from '@/components/admin/CouponsTab';
 import { Badge } from '@/components/ui/Badge';
 import { ProductModal } from '@/components/modals/ProductModal';
 import { OrderDetailsModal } from '@/components/modals/OrderDetailsModal';
@@ -204,7 +205,7 @@ export default function AdminPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-4 mb-8 overflow-x-auto">
-          {['products', 'Gemini Agent', 'ai-chat', 'orders', 'overview', 'messages', 'customers', 'analytics', 'announcements', 'landing', 'settings'].map((tab) => (
+          {['products', 'Gemini Agent', 'ai-chat', 'orders', 'coupons', 'overview', 'messages', 'customers', 'analytics', 'announcements', 'landing', 'settings'].map((tab) => (
             <button
               key={tab}
               onClick={() => setAdminTab(tab)}
@@ -382,7 +383,7 @@ export default function AdminPage() {
                   {/* Current Orders */}
                   {ordersSubTab === 'current' && (
                     <div className="space-y-4">
-                      {orders.filter(o => o.status === 'pending' || o.status === 'processing' || o.status === 'shipping').length === 0 ? (
+                      {orders.filter(o => o.status === 'pending' || o.status === 'processing' || o.status === 'shipping' || o.status === 'refund_in_progress' || o.status === 'PENDING' || o.status === 'PROCESSING' || o.status === 'SHIPPING' || o.status === 'REFUND_IN_PROGRESS').length === 0 ? (
                         <div className="bg-gray-800 rounded-lg shadow p-12 text-center">
                           <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                           <h3 className="text-xl font-semibold text-white mb-2">No current orders</h3>
@@ -390,7 +391,7 @@ export default function AdminPage() {
                         </div>
                       ) : (
                         orders
-                          .filter(o => o.status === 'pending' || o.status === 'processing' || o.status === 'shipping')
+                          .filter(o => o.status === 'pending' || o.status === 'processing' || o.status === 'shipping' || o.status === 'refund_in_progress' || o.status === 'PENDING' || o.status === 'PROCESSING' || o.status === 'SHIPPING' || o.status === 'REFUND_IN_PROGRESS')
                           .map(order => (
                             <div key={order.id} className="bg-gray-800 rounded-lg shadow overflow-hidden">
                               <div className="p-6 border-b border-gray-700">
@@ -408,11 +409,13 @@ export default function AdminPage() {
                                       <select
                                         value={order.status}
                                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                        className={`px-3 py-1 rounded text-sm font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                          order.status === 'shipping' ? 'bg-purple-100 text-purple-800' :
-                                            order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                                              order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                                'bg-yellow-100 text-yellow-800'
+                                        className={`px-3 py-1 rounded text-sm font-medium border-0 ${order.status === 'completed' || order.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                          order.status === 'shipping' || order.status === 'SHIPPING' ? 'bg-purple-100 text-purple-800' :
+                                            order.status === 'processing' || order.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                                              order.status === 'cancelled' || order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                                                order.status === 'refund_in_progress' || order.status === 'REFUND_IN_PROGRESS' ? 'bg-orange-100 text-orange-800' :
+                                                  order.status === 'refunded' || order.status === 'REFUNDED' ? 'bg-gray-100 text-gray-800' :
+                                                    'bg-yellow-100 text-yellow-800'
                                           }`}
                                       >
                                         <option value="pending">Pending</option>
@@ -420,6 +423,8 @@ export default function AdminPage() {
                                         <option value="shipping">Shipping</option>
                                         <option value="completed">Completed</option>
                                         <option value="cancelled">Cancelled</option>
+                                        <option value="refund_in_progress">Refund In Progress</option>
+                                        <option value="refunded">Refunded</option>
                                       </select>
                                       <button
                                         onClick={() => {
@@ -479,15 +484,15 @@ export default function AdminPage() {
                   {/* Past Orders */}
                   {ordersSubTab === 'past' && (
                     <div className="space-y-4">
-                      {orders.filter(o => o.status === 'completed' || o.status === 'cancelled').length === 0 ? (
+                      {orders.filter(o => o.status === 'completed' || o.status === 'cancelled' || o.status === 'refunded' || o.status === 'COMPLETED' || o.status === 'CANCELLED' || o.status === 'REFUNDED').length === 0 ? (
                         <div className="bg-gray-800 rounded-lg shadow p-12 text-center">
                           <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                           <h3 className="text-xl font-semibold text-white mb-2">No past orders</h3>
-                          <p className="text-gray-400">Completed and cancelled orders will appear here</p>
+                          <p className="text-gray-400">Completed, cancelled, and refunded orders will appear here</p>
                         </div>
                       ) : (
                         orders
-                          .filter(o => o.status === 'completed' || o.status === 'cancelled')
+                          .filter(o => o.status === 'completed' || o.status === 'cancelled' || o.status === 'refunded' || o.status === 'COMPLETED' || o.status === 'CANCELLED' || o.status === 'REFUNDED')
                           .map(order => (
                             <div key={order.id} className="bg-gray-800 rounded-lg shadow overflow-hidden">
                               <div className="p-6 border-b border-gray-700">
@@ -505,11 +510,13 @@ export default function AdminPage() {
                                       <select
                                         value={order.status}
                                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                        className={`px-3 py-1 rounded text-sm font-medium border-0 ${order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                          order.status === 'shipping' ? 'bg-purple-100 text-purple-800' :
-                                            order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                                              order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                                'bg-yellow-100 text-yellow-800'
+                                        className={`px-3 py-1 rounded text-sm font-medium border-0 ${order.status === 'completed' || order.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                          order.status === 'shipping' || order.status === 'SHIPPING' ? 'bg-purple-100 text-purple-800' :
+                                            order.status === 'processing' || order.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                                              order.status === 'cancelled' || order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                                                order.status === 'refund_in_progress' || order.status === 'REFUND_IN_PROGRESS' ? 'bg-orange-100 text-orange-800' :
+                                                  order.status === 'refunded' || order.status === 'REFUNDED' ? 'bg-gray-100 text-gray-800' :
+                                                    'bg-yellow-100 text-yellow-800'
                                           }`}
                                       >
                                         <option value="pending">Pending</option>
@@ -517,6 +524,8 @@ export default function AdminPage() {
                                         <option value="shipping">Shipping</option>
                                         <option value="completed">Completed</option>
                                         <option value="cancelled">Cancelled</option>
+                                        <option value="refund_in_progress">Refund In Progress</option>
+                                        <option value="refunded">Refunded</option>
                                       </select>
                                       <button
                                         onClick={() => {
@@ -771,6 +780,7 @@ export default function AdminPage() {
         {adminTab === 'analytics' && <AnalyticsTab darkMode={darkMode} />}
         {adminTab === 'announcements' && <AnnouncementsTab darkMode={darkMode} />}
         {adminTab === 'landing' && <LandingTab />}
+        {adminTab === 'coupons' && <CouponsTab />}
 
         {
           adminTab === 'settings' && (

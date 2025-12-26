@@ -1,10 +1,10 @@
 import React from 'react';
 import { getImageUrl } from '@/utils/imageUtils';
-import { useOrder } from '@/contexts';
+import { useOrder, useAuth } from '@/contexts';
 
 export const OrderDetailsModal: React.FC = () => {
   // Consume contexts directly
-  const { selectedOrder, setShowOrderDetailsModal } = useOrder();
+  const { selectedOrder, setShowOrderDetailsModal, updateOrderStatus } = useOrder();
   if (!selectedOrder) return null;
 
   // Admin modals use dark mode
@@ -12,6 +12,10 @@ export const OrderDetailsModal: React.FC = () => {
 
   // Type assertion to handle API response structure
   const order = selectedOrder as any;
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -27,6 +31,29 @@ export const OrderDetailsModal: React.FC = () => {
             ✕
           </button>
         </div>
+
+        {/* Admin Actions */}
+        {isAdmin && (
+          <div className={`mb-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30`}>
+            <h4 className="text-blue-400 font-semibold mb-3">Admin Actions</h4>
+            <div className="flex items-center gap-4">
+              <label className="text-sm text-gray-300">Update Status:</label>
+              <select
+                value={order.status}
+                onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                className="bg-gray-700 text-white border border-gray-600 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="PENDING">Pending</option>
+                <option value="PROCESSING">Processing</option>
+                <option value="SHIPPING">Shipping</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="REFUND_IN_PROGRESS">Refund In Progress</option>
+                <option value="REFUNDED">Refunded</option>
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Customer Info */}
         <div className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4 mb-4`}>

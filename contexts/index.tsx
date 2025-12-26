@@ -10,4 +10,5 @@ export { CartProvider, useCart } from './CartContext';
 export { ProductProvider, useProduct } from './ProductContext';
 export { OrderProvider, useOrder } from './OrderContext';
 export { NotificationProvider, useNotification } from './NotificationContext';
+export { WishlistProvider, useWishlist } from './WishlistContext';
 export { AppProvider } from './AppProvider';

@@ -1,26 +1,21 @@
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Phone, Mail } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
-
-const containerStyle = {
-  width: '100%',
-  height: '100%'
-};
-
-const center = {
-  lat: 23.7963, // Rupayan Nowfa Plaza
-  lng: 90.3929
-};
-
-const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places"];
 
 export default function ContactUs() {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries: libraries
-  });
+  const [mapQuery, setMapQuery] = useState('Rupayan+Nowfa+Plaza');
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapKey, setMapKey] = useState(0);
+
+  const selectLocation = (location: string) => {
+    setMapQuery(location);
+    setMapKey(prev => prev + 1); // Force iframe reload
+    // Scroll to map with smooth behavior
+    setTimeout(() => {
+      mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,7 +50,11 @@ export default function ContactUs() {
         {/* Office Locations */}
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           {/* Dhaka Office */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <div
+            onClick={() => selectLocation('Rupayan+Nowfa+Plaza')}
+            className="bg-white rounded-lg shadow-lg p-8 cursor-pointer hover:shadow-xl transition-shadow border-2 border-transparent hover:border-blue-100 active:border-blue-500"
+            title="Click to view on map"
+          >
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Dhaka Office
             </h2>
@@ -89,7 +88,11 @@ export default function ContactUs() {
           </div>
 
           {/* Chattogram Office */}
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <div
+            onClick={() => selectLocation('Sanmar+Silver+Spring')}
+            className="bg-white rounded-lg shadow-lg p-8 cursor-pointer hover:shadow-xl transition-shadow border-2 border-transparent hover:border-blue-100 active:border-blue-500"
+            title="Click to view on map"
+          >
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Chattogram Office
             </h2>
@@ -124,25 +127,17 @@ export default function ContactUs() {
         </div>
 
         {/* Map Section */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-12 h-96">
-          {isLoaded ? (
-            <GoogleMap
-              mapContainerStyle={containerStyle}
-              center={center}
-              zoom={16}
-              options={{
-                streetViewControl: true,
-                mapTypeControl: true,
-                fullscreenControl: true,
-              }}
-            >
-              <Marker position={center} />
-            </GoogleMap>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100 animate-pulse text-gray-500">
-              Loading Map...
-            </div>
-          )}
+        <div ref={mapRef} className="bg-white rounded-lg shadow-lg overflow-hidden mb-12 h-96">
+          <iframe
+            key={mapKey}
+            width="100%"
+            height="100%"
+            style={{ border: 0 }}
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+            src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${mapQuery}`}
+          ></iframe>
         </div>
 
         {/* CEO Contact */}

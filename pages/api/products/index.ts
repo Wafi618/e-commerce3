@@ -11,7 +11,7 @@ export default async function handler(
   try {
     if (req.method === 'GET') {
       // GET /api/products - Fetch all products
-      const { category, subcategory, search } = req.query;
+      const { category, subcategory, search, minPrice, maxPrice } = req.query;
 
       // Check if user is admin
       const session = await getServerSession(req, res, getAuthOptions(req, res));
@@ -21,6 +21,8 @@ export default async function handler(
         category: category as string,
         subcategory: subcategory as string,
         search: search as string,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
         isAdmin
       });
 
