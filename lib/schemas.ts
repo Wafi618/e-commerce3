@@ -71,6 +71,9 @@ export const checkoutSchema = z.object({
   house: z.string().optional().nullable(),
   floor: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  shippingCost: z.number().optional().default(0),
+  couponCode: z.string().optional().nullable(),
+  discountAmount: z.number().optional().default(0),
 });
 
 export const manualCheckoutSchema = checkoutSchema.extend({

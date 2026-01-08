@@ -3,6 +3,19 @@ import { prisma } from '@/lib/prisma';
 
 const EXTERNAL_DATA_URL = 'https://starxessories.cc';
 
+function escapeXml(unsafe: string): string {
+  return unsafe.replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
+
 function generateSiteMap(products: any[]) {
   // Static pages that should be indexed
   const staticPages = [
@@ -13,12 +26,7 @@ function generateSiteMap(products: any[]) {
 
   const staticUrls = staticPages
     .map((page) => {
-      return `
-  <url>
-      <loc>${EXTERNAL_DATA_URL}${page}</loc>
-      <changefreq>daily</changefreq>
-      <priority>${page === '' ? '1.0' : '0.8'}</priority>
-  </url>`;
+      return `<url><loc>${escapeXml(`${EXTERNAL_DATA_URL}${page}`)}</loc><changefreq>daily</changefreq><priority>${page === '' ? '1.0' : '0.8'}</priority></url>`;
     })
     .join('');
 
@@ -31,22 +39,11 @@ function generateSiteMap(products: any[]) {
       } catch (e) {
         dateString = new Date().toISOString(); // Fallback to current date
       }
-      return `
-  <url>
-      <loc>${`${EXTERNAL_DATA_URL}/product/${id}`}</loc>
-      <lastmod>${dateString}</lastmod>
-      <changefreq>weekly</changefreq>
-      <priority>0.8</priority>
-  </url>
-`;
+      return `<url><loc>${escapeXml(`${EXTERNAL_DATA_URL}/product/${id}`)}</loc><lastmod>${dateString}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`;
     })
     .join('');
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${staticUrls}
-${productUrls}
-</urlset>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${staticUrls}${productUrls}</urlset>`;
 }
 
 function SiteMap() {

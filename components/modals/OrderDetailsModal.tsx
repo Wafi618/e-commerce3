@@ -65,7 +65,7 @@ export const OrderDetailsModal: React.FC = () => {
             </div>
             <div>
               <span className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Email:</span>
-              <span className={`ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{order.email || 'N/A'}</span>
+              <span className={`ml-2 break-all ${darkMode ? 'text-white' : 'text-gray-900'}`}>{order.email || 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -180,8 +180,27 @@ export const OrderDetailsModal: React.FC = () => {
         </div>
 
         {/* Total */}
-        <div className={`border-t ${darkMode ? 'border-gray-700' : ''} pt-4`}>
-          <div className="flex justify-between items-center">
+        <div className={`border-t ${darkMode ? 'border-gray-700' : ''} pt-4 space-y-2`}>
+          <div className="flex justify-between items-center text-sm">
+            <span className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Subtotal:</span>
+            <span className={`${darkMode ? 'text-white' : 'text-gray-900'}`}>৳{(Number(order.total) - Number(order.shippingCost || 0) + Number(order.discountAmount || 0)).toFixed(2)}</span>
+          </div>
+
+          {(order.shippingCost > 0) && (
+            <div className="flex justify-between items-center text-sm">
+              <span className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Shipping:</span>
+              <span className={`${darkMode ? 'text-white' : 'text-gray-900'}`}>৳{Number(order.shippingCost).toFixed(2)}</span>
+            </div>
+          )}
+
+          {(order.discountAmount > 0) && (
+            <div className="flex justify-between items-center text-sm">
+              <span className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Discount {order.couponCode ? `(${order.couponCode})` : ''}:</span>
+              <span className="text-red-500">-৳{Number(order.discountAmount).toFixed(2)}</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-2 border-t border-gray-700">
             <span className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Total Amount:</span>
             <span className={`text-2xl font-bold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>৳{Number(order.total).toFixed(2)}</span>
           </div>

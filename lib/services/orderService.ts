@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+// Types refreshed after schema update
 import { CreateOrderInput, OrderFilter } from '@/types/service';
 import { sendDiscordNotification } from '@/utils/discord';
 import { sendTelegramNotification } from '@/utils/telegram';
@@ -118,6 +119,12 @@ export class OrderService {
           floor: orderData.floor || null,
           notes: orderData.notes || null,
           total: new Decimal(orderData.total),
+          // @ts-ignore
+          shippingCost: new Decimal(orderData.shippingCost || 0),
+          // @ts-ignore
+          discountAmount: new Decimal(orderData.discountAmount || 0),
+          // @ts-ignore
+          couponCode: orderData.couponCode || null,
           status: (orderData.status as OrderStatus) || 'PENDING',
           paymentMethod: orderData.paymentMethod,
           paymentPhoneNumber: orderData.paymentPhoneNumber,
@@ -211,6 +218,12 @@ export class OrderService {
       house: order.house,
       floor: order.floor,
       notes: order.notes,
+      // @ts-ignore
+      shippingCost: order.shippingCost,
+      // @ts-ignore
+      discountAmount: order.discountAmount,
+      // @ts-ignore
+      couponCode: order.couponCode,
     };
   }
 

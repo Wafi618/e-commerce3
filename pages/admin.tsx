@@ -395,7 +395,7 @@ export default function AdminPage() {
                           .map(order => (
                             <div key={order.id} className="bg-gray-800 rounded-lg shadow overflow-hidden">
                               <div className="p-6 border-b border-gray-700">
-                                <div className="flex justify-between items-start">
+                                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                                   <div>
                                     <h3 className="text-lg font-semibold text-white">Order #{order.id}</h3>
                                     <p className="text-sm text-gray-400 mt-1">
@@ -403,9 +403,9 @@ export default function AdminPage() {
                                     </p>
                                     <p className="text-sm text-gray-400">{order.date || new Date(order.createdAt).toLocaleDateString()}</p>
                                   </div>
-                                  <div className="text-right">
+                                  <div className="text-right w-full md:w-auto">
                                     <p className="text-2xl font-bold text-white">৳{Number(order.total).toFixed(2)}</p>
-                                    <div className="flex gap-2 mt-2 justify-end">
+                                    <div className="flex gap-2 mt-2 justify-end flex-wrap">
                                       <select
                                         value={order.status}
                                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
@@ -461,7 +461,7 @@ export default function AdminPage() {
                                         <div>
                                           <p className="font-medium text-white">{item.product.name}</p>
                                           {item.selectedOptions && (
-                                            <div className="text-xs text-gray-400">
+                                            <div className="text-xs text-gray-400 break-words">
                                               {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}
                                             </div>
                                           )}
@@ -569,7 +569,7 @@ export default function AdminPage() {
                                         <div>
                                           <p className="font-medium text-white">{item.product.name}</p>
                                           {item.selectedOptions && (
-                                            <div className="text-xs text-gray-400">
+                                            <div className="text-xs text-gray-400 break-words">
                                               {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}
                                             </div>
                                           )}
@@ -716,7 +716,7 @@ export default function AdminPage() {
                                   {new Date(msg.createdAt).toLocaleDateString()} {new Date(msg.createdAt).toLocaleTimeString()}
                                 </span>
                               </div>
-                              <p className="text-gray-300">{msg.message}</p>
+                              <p className="text-gray-300 break-words whitespace-pre-wrap">{msg.message}</p>
                             </div>
                           );
                         })}
@@ -764,7 +764,7 @@ export default function AdminPage() {
                                   </button>
                                 </div>
                               </div>
-                              <p className="text-gray-300 whitespace-pre-line">{msg.message}</p>
+                              <p className="text-gray-300 whitespace-pre-wrap break-words">{msg.message}</p>
                             </div>
                           );
                         })}

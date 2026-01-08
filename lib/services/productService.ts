@@ -27,13 +27,20 @@ export class ProductService {
       if (filter.maxPrice !== undefined) where.price.lte = filter.maxPrice;
     }
 
-    // Filter out archived products for non-admins
-    if (!filter.isAdmin) {
+    // explicit archive filter takes precedence
+    if (typeof filter.isArchived === 'boolean') {
+      where.isArchived = filter.isArchived;
+    } else if (!filter.isAdmin) {
+      // Default: Filter out archived products for non-admins
       where.isArchived = false;
     }
 
+    const total = await prisma.product.count({ where });
+
     let products = await prisma.product.findMany({
       where,
+      skip: (filter.page && filter.limit) ? (filter.page - 1) * filter.limit : undefined,
+      take: filter.limit,
       include: {
         options: {
           include: {
@@ -68,10 +75,10 @@ export class ProductService {
     }));
 
     if (filter.search) {
-      return this.flattenProductsForSearch(products);
+      products = this.flattenProductsForSearch(products);
     }
 
-    return products;
+    return { products, total };
   }
 
   static async createProduct(input: CreateProductInput) {

@@ -17,7 +17,7 @@ export default async function handler(
       const session = await getServerSession(req, res, getAuthOptions(req, res));
       const isAdmin = session?.user?.role === 'ADMIN';
 
-      const products = await ProductService.getProducts({
+      const { products } = await ProductService.getProducts({
         category: category as string,
         subcategory: subcategory as string,
         search: search as string,

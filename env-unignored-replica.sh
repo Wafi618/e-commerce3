@@ -31,4 +31,12 @@ DEEPSEEK_API_KEY=sk-sample_api_key_1234567890abcdef
 GMAIL_USER=example@gmail.com
 GMAIL_APP_PASSWORD=your apps pass here
 
-CEO_EMAILS=akmrobiul2024@gmail.com,infostaraccess@gmail.com
+CEO_EMAILS=johndoe@gmail.com,johnsmith@gmail.com
+
+# AI API (Gemini)
+GEMINI_API_KEY=AIzaSy_dummy_key_1234567890
+NEXT_PUBLIC_GEMINI_API_KEY=AIzaSy_dummy_key_1234567890
+
+# Google Maps
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSy_dummy_key_1234567890
+GOOGLE_MAPS_API_KEY=AIzaSy_dummy_key_1234567890

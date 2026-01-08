@@ -37,7 +37,7 @@ export const sendOrderConfirmationEmail = async (
     console.error('Error checking email settings:', error);
   }
 
-  const { customerName, total, items, address, city, country, paymentMethod } = orderDetails;
+  const { customerName, total, items, address, city, country, paymentMethod, shippingCost, discountAmount } = orderDetails;
 
   const html = await render(
     OrderConfirmationWrapper({
@@ -49,6 +49,8 @@ export const sendOrderConfirmationEmail = async (
       city,
       country,
       paymentMethod,
+      shippingCost,
+      discountAmount,
     })
   );
 

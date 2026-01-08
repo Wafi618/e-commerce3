@@ -33,6 +33,9 @@ export default async function handler(
       house,
       floor,
       notes,
+      shippingCost,
+      couponCode,
+      discountAmount,
       bkashNumber,
       trxId,
     } = result.data;
@@ -48,6 +51,9 @@ export default async function handler(
       house,
       floor,
       notes,
+      shippingCost,
+      couponCode,
+      discountAmount,
       total: Number(amount), // Schema already validates this as number (or transform if needed, but OrderService expects number)
       status: 'PENDING',
       paymentMethod: 'MANUAL_BKASH',

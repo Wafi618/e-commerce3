@@ -451,7 +451,7 @@ export default function ProductDetailPage({ initialData, error, preSelectedVaria
                 <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
                   Description
                 </h2>
-                <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <div className={`prose ${darkMode ? 'prose-invert' : ''} max-w-none break-words ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{

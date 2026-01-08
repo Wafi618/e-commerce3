@@ -23,7 +23,7 @@ class MyDocument extends Document<{ favicon?: string }> {
 
   render() {
     const { favicon } = this.props;
-    const faviconUrl = favicon || '/logo.png'; // Fallback
+    const faviconUrl = favicon || '/favicon.ico'; // Fallback
 
     return (
       <Html lang="en">

@@ -280,6 +280,15 @@ export default function ProfilePage() {
           <SecuritySettings darkMode={darkMode} addNotification={addNotification} />
         </div>
 
+        {/* Danger Zone */}
+        <div className={`mt-8 border-2 border-red-500/20 bg-red-500/5 rounded-lg shadow-sm p-6`}>
+          <h2 className="text-2xl font-bold text-red-500 mb-2">Danger Zone</h2>
+          <p className="text-gray-400 text-sm mb-6">
+            Deleting your account is permanent and cannot be undone. All your data, including order history and saved addresses, will be removed.
+          </p>
+          <DeleteAccountButton darkMode={darkMode} addNotification={addNotification} />
+        </div>
+
         {/* Saved Addresses Section */}
         <div className={`mt-8 ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-6`}>
           <div className="flex justify-between items-center mb-6">
@@ -535,5 +544,44 @@ const SecuritySettings: React.FC<{ darkMode: boolean; addNotification: (msg: str
         </div>
       </div>
     </form>
+  );
+};
+
+const DeleteAccountButton: React.FC<{ darkMode: boolean; addNotification: (msg: string, type: 'success' | 'error') => void }> = ({ darkMode, addNotification }) => {
+  const [loading, setLoading] = useState(false);
+  const { handleLogout } = useAuth();
+
+  const handleDelete = async () => {
+    if (!confirm('CRITICAL: Are you absolutely sure you want to delete your account? This action is permanent.')) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/profile/delete-account', {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        addNotification('Your account has been deleted.', 'success');
+        handleLogout();
+        window.location.href = '/';
+      } else {
+        addNotification(data.error || 'Failed to delete account', 'error');
+      }
+    } catch (error) {
+      addNotification('Network error', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDelete}
+      disabled={loading}
+      className={`bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50`}
+    >
+      <Trash2 className="w-5 h-5" />
+      {loading ? 'Deleting Account...' : 'Delete My Account Permanently'}
+    </button>
   );
 };

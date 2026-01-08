@@ -217,7 +217,7 @@ export const MessageModal: React.FC = () => {
                           {new Date(msg.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{msg.message}</p>
+                      <p className={`break-words whitespace-pre-wrap ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{msg.message}</p>
                     </div>
                   );
                 })}

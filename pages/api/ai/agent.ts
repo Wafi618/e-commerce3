@@ -1,8 +1,7 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { GoogleGenAI } from '@google/genai';
 import { getServerSession } from 'next-auth/next';
-import { getAuthOptions } from '../auth/[...nextauth]';
+import { getAuthOptions } from '../../../lib/authOptions';
 import { ProductService } from '@/lib/services/productService';
 import { prisma } from '@/lib/prisma';
 import { ImageService } from '@/lib/services/imageService';
@@ -26,6 +25,8 @@ const getTools = (enableImageGen: boolean) => {
                             category: { type: "STRING", description: 'Filter by category (e.g. "Vehicles", "Clothing")' },
                             subcategory: { type: "STRING", description: 'Filter by subcategory' },
                             latest: { type: "BOOLEAN", description: 'If true, returns the most recently created products first.' },
+                            page: { type: "NUMBER", description: 'Page number (default 1)' },
+                            limit: { type: "NUMBER", description: 'Items per page (default 20, max 50)' }
                         },
                     },
                 },
@@ -209,7 +210,8 @@ const getTools = (enableImageGen: boolean) => {
                         properties: {
                             status: { type: "STRING", description: 'Filter by status (PENDING, PROCESSING, SHIPPING, COMPLETED, CANCELLED)' },
                             search: { type: "STRING", description: 'Search by Order ID (numeric), Customer Name, or Email' },
-                            limit: { type: "NUMBER", description: 'Number of orders to return (default 10)' }
+                            limit: { type: "NUMBER", description: 'Number of orders per page (default 20)' },
+                            page: { type: "NUMBER", description: 'Page number (default 1)' }
                         },
                     },
                 },
@@ -266,7 +268,8 @@ const getTools = (enableImageGen: boolean) => {
                         type: "OBJECT",
                         properties: {
                             search: { type: "STRING", description: 'Name or email to search' },
-                            limit: { type: "NUMBER", description: 'Limit results (default 10)' }
+                            limit: { type: "NUMBER", description: 'Limit results (default 20)' },
+                            page: { type: "NUMBER", description: 'Page number (default 1)' }
                         }
                     }
                 },
@@ -410,6 +413,17 @@ const getTools = (enableImageGen: boolean) => {
         });
     }
 
+    tools[0].functionDeclarations.push({
+        name: 'getToolDocumentation',
+        description: 'Get detailed documentation for specific tools or all tools. Use this when you need to know how to use a function or what parameters it accepts.',
+        parameters: {
+            type: "OBJECT",
+            properties: {
+                toolName: { type: "STRING", description: "Optional: The name of the tool to get documentation for. If omitted, returns all tools." }
+            }
+        }
+    });
+
     return tools;
 };
 
@@ -442,15 +456,20 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
     try {
         switch (name) {
             case 'listProducts': {
-                const products = await ProductService.getProducts({
+                const limit = (args?.limit as number) || 20;
+                const page = (args?.page as number) || 1;
+                const { products, total } = await ProductService.getProducts({
                     search: args?.search as string,
                     category: args?.category as string,
                     subcategory: args?.subcategory as string,
                     latest: args?.latest as boolean,
-                    isAdmin: true
+                    isAdmin: true,
+                    isArchived: false,
+                    page,
+                    limit
                 });
                 apiResponse = {
-                    products: products.slice(0, 10).map((p: any) => ({
+                    products: products.map((p: any) => ({
                         id: p.id,
                         name: p.name,
                         price: p.price,
@@ -461,7 +480,13 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
                         images: p.images,
                         description: p.description,
                         options: p.options
-                    }))
+                    })),
+                    pagination: {
+                        totalItems: total,
+                        totalPages: Math.ceil(total / limit),
+                        currentPage: page,
+                        itemsPerPage: limit
+                    }
                 };
                 break;
             }
@@ -598,6 +623,25 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
                         totalUnique: customers
                     }
                 };
+                break;
+            case 'getToolDocumentation':
+                const targetTool = args?.toolName;
+                // We need to re-call getTools to get the list, passing false for image gen status is fine as we just want definitions
+                // Or we can assume enableImageGen from scope.
+                const allTools = getTools(true);
+                let docs;
+                if (targetTool) {
+                    docs = allTools.flatMap(t => t.functionDeclarations).find((f: any) => f.name === targetTool);
+                    if (!docs) apiResponse = { error: `Tool ${targetTool} not found.` };
+                    else apiResponse = { documentation: docs };
+                } else {
+                    docs = allTools.flatMap(t => t.functionDeclarations).map((f: any) => ({
+                        name: f.name,
+                        description: f.description,
+                        parameters: f.parameters
+                    }));
+                    apiResponse = { documentation: docs };
+                }
                 break;
             case 'rotateLocalImage':
                 const rotatedBase64 = await ImageService.rotateImage(
@@ -778,13 +822,30 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
                         ];
                     }
                 }
-                const orderList = await prisma.order.findMany({
-                    where,
-                    take: (args?.limit as number) || 10,
-                    orderBy: { createdAt: 'desc' },
-                    include: { orderItems: true } // Include basics
-                });
-                apiResponse = { orders: orderList };
+                const orderLimit = (args?.limit as number) || 20;
+                const orderPage = (args?.page as number) || 1;
+                const orderSkip = (orderPage - 1) * orderLimit;
+
+                const [orderTotal, orderList] = await Promise.all([
+                    prisma.order.count({ where }),
+                    prisma.order.findMany({
+                        where,
+                        take: orderLimit,
+                        skip: orderSkip,
+                        orderBy: { createdAt: 'desc' },
+                        include: { orderItems: true }
+                    })
+                ]);
+
+                apiResponse = {
+                    orders: orderList,
+                    pagination: {
+                        totalItems: orderTotal,
+                        totalPages: Math.ceil(orderTotal / orderLimit),
+                        currentPage: orderPage,
+                        itemsPerPage: orderLimit
+                    }
+                };
                 break;
             case 'updateOrderStatus':
                 await prisma.order.update({
@@ -830,18 +891,35 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
                         { email: { contains: args.search as string, mode: 'insensitive' } }
                     ];
                 }
-                const customerList = await prisma.user.findMany({
-                    where: userWhere,
-                    take: (args?.limit as number) || 10,
-                    select: { id: true, name: true, email: true, phone: true, restrictedAccess: true, orders: { select: { id: true, total: true } } }
-                });
+                const custLimit = (args?.limit as number) || 20;
+                const custPage = (args?.page as number) || 1;
+                const custSkip = (custPage - 1) * custLimit;
+
+                const [custTotal, customerList] = await Promise.all([
+                    prisma.user.count({ where: userWhere }),
+                    prisma.user.findMany({
+                        where: userWhere,
+                        take: custLimit,
+                        skip: custSkip,
+                        select: { id: true, name: true, email: true, phone: true, restrictedAccess: true, orders: { select: { id: true, total: true } } }
+                    })
+                ]);
+
                 // Calculate total spend for "top spending" context if needed, or just return raw
                 const formattedCustomers = customerList.map(c => ({
                     ...c,
                     totalOrders: c.orders.length,
                     totalSpent: c.orders.reduce((sum, o) => sum + Number(o.total), 0)
                 }));
-                apiResponse = { customers: formattedCustomers };
+                apiResponse = {
+                    customers: formattedCustomers,
+                    pagination: {
+                        totalItems: custTotal,
+                        totalPages: Math.ceil(custTotal / custLimit),
+                        currentPage: custPage,
+                        itemsPerPage: custLimit
+                    }
+                };
                 break;
             case 'resetCustomerPassword':
                 const rUser = await prisma.user.findUnique({ where: { email: args?.email as string } });
@@ -949,12 +1027,31 @@ async function executeToolCall(name: string, args: any, client: any, enableQC: b
                 if (args?.activeOnly) {
                     where.isActive = true;
                 }
-                const coupons = await prisma.coupon.findMany({
-                    where,
-                    take: (args?.limit as number) || 20,
-                    orderBy: { createdAt: 'desc' },
-                });
-                apiResponse = { success: true, coupons };
+
+                const coupLimit = (args?.limit as number) || 20;
+                const coupPage = (args?.page as number) || 1;
+                const coupSkip = (coupPage - 1) * coupLimit;
+
+                const [coupTotal, coupons] = await Promise.all([
+                    prisma.coupon.count({ where }),
+                    prisma.coupon.findMany({
+                        where,
+                        take: coupLimit,
+                        skip: coupSkip,
+                        orderBy: { createdAt: 'desc' },
+                    })
+                ]);
+
+                apiResponse = {
+                    success: true,
+                    coupons,
+                    pagination: {
+                        totalItems: coupTotal,
+                        totalPages: Math.ceil(coupTotal / coupLimit),
+                        currentPage: coupPage,
+                        itemsPerPage: coupLimit
+                    }
+                };
                 break;
             }
             case 'updateCoupon': {
@@ -1031,19 +1128,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
-        const { message, history, images: base64Images, enableImageGen, enableQC, enableAutoScout, model } = req.body;
+        const { message, history, images: base64Images, enableImageGen, enableQC, enableAutoScout, model, type, toolName, toolArgs } = req.body;
+
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            return res.status(500).json({ success: false, error: 'GEMINI_API_KEY not configured' });
+        }
+        const client = new GoogleGenAI({ apiKey });
+
+        // Handle direct tool execution for Gemini Live integration
+        if (type === 'execute_tool') {
+            if (!toolName) {
+                return res.status(400).json({ success: false, error: 'Tool name required' });
+            }
+            const { apiResponse, extraParts, pendingImageGeneration } = await executeToolCall(
+                toolName,
+                toolArgs || {},
+                client,
+                enableQC ?? false,
+                model || 'gemini-flash-lite-latest'
+            );
+            return res.status(200).json({ success: true, result: apiResponse, extraParts, imageGeneration: pendingImageGeneration });
+        }
 
         if (!message && !base64Images) {
             return res.status(400).json({ success: false, error: 'Message or image data is required' });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-
-        if (!apiKey) {
-            return res.status(500).json({ success: false, error: 'GEMINI_API_KEY not configured' });
-        }
-
-        const client = new GoogleGenAI({ apiKey });
         const tools = getTools(enableImageGen);
 
         // Sanitize history 
@@ -1101,14 +1212,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         currentParts.push({ text: textMessage });
 
-        // Generate Content with Tools
-        // Note: New SDK uses client.models.generateContent containing `contents` (history + current)
-        // Or we can construct a chat session.
-        // Let's use generaContent with multi-turn history manually constructed in `contents` list to be safe state-wise
-        // or check if there is a `chats.create` equivalent.
-        // Based on docs: `client.chats.create({ model: ..., history: ... })` is likely available or we use `generateContent` with full list.
-        // Let's use `generateContent` with full history for stateless simplicity on serverless.
-
         const allContents = [
             ...validHistory,
             {
@@ -1128,7 +1231,7 @@ ${enableAutoScout ? '7.' : '5.'} URL SAFETY: You CANNOT invent new URLs. You mus
         ];
 
         // Select Model
-        const modelId = model || "gemini-3-flash-preview";
+        const modelId = model || "gemini-flash-lite-latest";
         let pendingImageGeneration: any = null;
 
         // --- DeepSeek Integration ---

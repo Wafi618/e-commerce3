@@ -36,7 +36,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       address,
       house,
       floor,
-      notes
+      notes,
+      shippingCost,
+      couponCode,
+      discountAmount
     } = result.data;
 
     // CRITICAL: Validate stock availability for ALL items BEFORE creating order
@@ -115,6 +118,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         floor: floor || null,
         notes: notes || null,
         total: new (require('decimal.js'))(amount as any),
+        // @ts-ignore
+        shippingCost: new (require('decimal.js'))(shippingCost || 0),
+        // @ts-ignore
+        discountAmount: new (require('decimal.js'))(discountAmount || 0),
+        // @ts-ignore
+        couponCode: couponCode || null,
         status: 'PENDING',
         orderItems: {
           create: cartItems.map((item: any) => ({

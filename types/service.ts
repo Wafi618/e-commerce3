@@ -11,6 +11,9 @@ export interface CreateOrderInput {
   house?: string | null;
   floor?: string | null;
   notes?: string | null;
+  shippingCost?: number;
+  couponCode?: string | null;
+  discountAmount?: number;
   total: number;
   status?: string;
   paymentMethod: string;
@@ -39,6 +42,9 @@ export interface ProductFilter {
   maxPrice?: number;
   isAdmin?: boolean;
   latest?: boolean;
+  page?: number;
+  limit?: number;
+  isArchived?: boolean;
 }
 
 export interface CreateProductInput {

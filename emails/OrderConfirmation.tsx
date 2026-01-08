@@ -22,6 +22,8 @@ interface OrderConfirmationProps {
     city: string;
     country: string;
     paymentMethod: string;
+    shippingCost?: number;
+    discountAmount?: number;
 }
 
 export const OrderConfirmationWrapper = ({
@@ -33,6 +35,8 @@ export const OrderConfirmationWrapper = ({
     city = "Dhaka",
     country = "Bangladesh",
     paymentMethod = "COD",
+    shippingCost = 0,
+    discountAmount = 0,
 }: OrderConfirmationProps) => (
     <Html>
         <Head />
@@ -64,6 +68,40 @@ export const OrderConfirmationWrapper = ({
                         </Row>
                     ))}
                     <Hr style={hr} />
+
+                    <Row style={{ marginBottom: "8px" }}>
+                        <Column>
+                            <Text style={summaryLabel}>Subtotal</Text>
+                        </Column>
+                        <Column style={{ textAlign: "right" }}>
+                            <Text style={summaryValue}>৳{(Number(total) - Number(shippingCost) + Number(discountAmount)).toFixed(2)}</Text>
+                        </Column>
+                    </Row>
+
+                    {shippingCost > 0 && (
+                        <Row style={{ marginBottom: "8px" }}>
+                            <Column>
+                                <Text style={summaryLabel}>Shipping</Text>
+                            </Column>
+                            <Column style={{ textAlign: "right" }}>
+                                <Text style={summaryValue}>৳{Number(shippingCost).toFixed(2)}</Text>
+                            </Column>
+                        </Row>
+                    )}
+
+                    {discountAmount > 0 && (
+                        <Row style={{ marginBottom: "8px" }}>
+                            <Column>
+                                <Text style={summaryLabel}>Discount</Text>
+                            </Column>
+                            <Column style={{ textAlign: "right" }}>
+                                <Text style={summaryValue}>-৳{Number(discountAmount).toFixed(2)}</Text>
+                            </Column>
+                        </Row>
+                    )}
+
+                    <Hr style={hr} />
+
                     <Row>
                         <Column>
                             <Text style={totalLabel}>Total</Text>
@@ -170,6 +208,18 @@ const totalLabel = {
 const totalPrice = {
     fontSize: "16px",
     fontWeight: "bold",
+    margin: "0",
+};
+
+const summaryLabel = {
+    fontSize: "14px",
+    color: "#6b7280",
+    margin: "0",
+};
+
+const summaryValue = {
+    fontSize: "14px",
+    color: "#374151",
     margin: "0",
 };
 

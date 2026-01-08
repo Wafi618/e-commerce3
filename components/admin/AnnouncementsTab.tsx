@@ -117,7 +117,7 @@ export const AnnouncementsTab = ({ darkMode }: { darkMode: boolean }) => {
                 </button>
             </div>
 
-            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow overflow-hidden`}>
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow overflow-x-auto`}>
                 <table className="w-full">
                     <thead className={`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
                         <tr>

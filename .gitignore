@@ -47,3 +47,6 @@ yarn-error.log*
 public/sw.js
 public/workbox-*.js
 public/worker-*.js
+
+.gemini/
+gha-creds-*.json
